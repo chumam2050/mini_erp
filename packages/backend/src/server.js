@@ -91,9 +91,10 @@ const startServer = async () => {
         await sequelize.sync({ alter: true })
         console.log('✅ Database models synchronized')
 
-        // Start Express server
-        app.listen(PORT, () => {
-            console.log(`
+        // Start Express server hanya jika bukan test environment
+        if (process.env.NODE_ENV !== 'test') {
+            app.listen(PORT, () => {
+                console.log(`
 ╔════════════════════════════════════════╗
 ║   MiniERP Backend Server Started      ║
 ╠════════════════════════════════════════╣
@@ -102,16 +103,22 @@ const startServer = async () => {
 ║   Time: ${new Date().toLocaleString()}   ║
 ╚════════════════════════════════════════╝
     `)
-            console.log(`🚀 Server is running on http://localhost:${PORT}`)
-            console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`)
-            console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs.json\n`)
-        })
+                console.log(`🚀 Server is running on http://localhost:${PORT}`)
+                console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`)
+                console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs.json\n`)
+            })
+        }
     } catch (error) {
         console.error('❌ Failed to start server:', error)
-        process.exit(1)
+        if (process.env.NODE_ENV !== 'test') {
+            process.exit(1)
+        }
     }
 }
 
-startServer()
+// Start server jika bukan di-import sebagai module
+if (process.env.NODE_ENV !== 'test') {
+    startServer()
+}
 
 export default app

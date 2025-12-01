@@ -11,6 +11,7 @@ Backend API server untuk aplikasi MiniERP dengan autentikasi JWT dan PostgreSQL 
 ✅ Password hashing dengan bcrypt  
 ✅ Role-based access control (RBAC)  
 ✅ **Swagger/OpenAPI Documentation**  
+✅ **Comprehensive Unit Tests** (66 tests, 80%+ coverage)  
 ✅ Validasi data  
 ✅ Error handling  
 
@@ -94,7 +95,34 @@ npm start
 
 Server akan berjalan di `http://localhost:5000`
 
-**📚 Swagger UI tersedia di:** `http://localhost:5000/api-docs`
+**📖 Swagger UI tersedia di:** `http://localhost:5000/api-docs`
+
+## 🧪 Testing
+
+### Run Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Test Coverage
+
+Test coverage saat ini:
+- **Statements**: 80.33%
+- **Branches**: 73.25%
+- **Functions**: 87.5%
+- **Lines**: 81.03%
+
+**Total Tests**: 66 tests across 4 test suites
+
+Lihat panduan lengkap di [TESTING.md](./TESTING.md)
 
 ## 📖 API Documentation
 
