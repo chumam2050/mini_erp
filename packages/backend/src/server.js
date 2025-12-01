@@ -1,7 +1,11 @@
 import express from 'express'
 import cors from 'cors'
 import dotenv from 'dotenv'
+import swaggerUi from 'swagger-ui-express'
+import sequelize, { testConnection } from './config/database.js'
+import swaggerSpec from './config/swagger.js'
 import apiRoutes from './routes/api.js'
+import authRoutes from './routes/auth.js'
 
 // Load environment variables
 dotenv.config()
@@ -21,7 +25,20 @@ app.use((req, res, next) => {
 })
 
 // Routes
+app.use('/api/auth', authRoutes)
 app.use('/api', apiRoutes)
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'MiniERP API Documentation'
+}))
+
+// Swagger JSON endpoint
+app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json')
+    res.send(swaggerSpec)
+})
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -29,8 +46,19 @@ app.get('/', (req, res) => {
         message: 'MiniERP Backend API',
         version: '1.0.0',
         status: 'running',
+        documentation: {
+            swagger: '/api-docs',
+            json: '/api-docs.json'
+        },
         endpoints: {
             health: '/api/health',
+            auth: {
+                register: 'POST /api/auth/register',
+                login: 'POST /api/auth/login',
+                profile: 'GET /api/auth/me',
+                updateProfile: 'PUT /api/auth/me',
+                changePassword: 'PUT /api/auth/change-password'
+            },
             users: '/api/users'
         }
     })
@@ -54,8 +82,18 @@ app.use((err, req, res, next) => {
 })
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`
+const startServer = async () => {
+    try {
+        // Test database connection
+        await testConnection()
+        
+        // Sync database models
+        await sequelize.sync({ alter: true })
+        console.log('✅ Database models synchronized')
+
+        // Start Express server
+        app.listen(PORT, () => {
+            console.log(`
 ╔════════════════════════════════════════╗
 ║   MiniERP Backend Server Started      ║
 ╠════════════════════════════════════════╣
@@ -63,9 +101,17 @@ app.listen(PORT, () => {
 ║   Environment: ${process.env.NODE_ENV || 'development'}            ║
 ║   Time: ${new Date().toLocaleString()}   ║
 ╚════════════════════════════════════════╝
-  `)
-    console.log(`🚀 Server is running on http://localhost:${PORT}`)
-    console.log(`📚 API Documentation: http://localhost:${PORT}/api/health\n`)
-})
+    `)
+            console.log(`🚀 Server is running on http://localhost:${PORT}`)
+            console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`)
+            console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs.json\n`)
+        })
+    } catch (error) {
+        console.error('❌ Failed to start server:', error)
+        process.exit(1)
+    }
+}
+
+startServer()
 
 export default app

@@ -38,6 +38,10 @@ minierp/
 ### Backend
 - **Node.js** - JavaScript runtime
 - **Express** - Web framework yang minimalis
+- **Sequelize** - ORM untuk PostgreSQL
+- **PostgreSQL** - Relational database
+- **JWT** - JSON Web Token untuk authentication
+- **bcryptjs** - Password hashing
 - **CORS** - Cross-Origin Resource Sharing
 - **Nodemon** - Auto-reload untuk development
 
@@ -66,6 +70,22 @@ minierp/
    Lerna v8 menggunakan npm workspaces, jadi `npm install` akan otomatis install dependencies untuk semua packages.
 
 ## 🎯 Development
+
+### Quick Start (Recommended)
+
+**📖 Lihat [QUICKSTART.md](./QUICKSTART.md) untuk panduan lengkap setup database dan authentication!**
+
+1. **Seed Database (pertama kali)**
+   ```bash
+   cd packages/backend
+   npm run seed
+   ```
+
+2. **Start Development Servers**
+   ```bash
+   cd /workspace
+   npm run dev
+   ```
 
 ### Menjalankan Frontend dan Backend Secara Bersamaan
 
@@ -107,61 +127,63 @@ npx lerna run build --scope=@minierp/frontend
 
 ## 📡 API Endpoints
 
-### Health Check
-```
-GET /api/health
-```
-Response:
-```json
-{
-  "status": "OK",
-  "message": "Backend is running smoothly",
-  "timestamp": "2025-12-01T13:53:00.000Z",
-  "uptime": 123.456,
-  "environment": "development"
-}
-```
+### 🔓 Public Endpoints
 
-### Users
-
-#### Get All Users
+#### Register
 ```
-GET /api/users
-```
-
-#### Get User by ID
-```
-GET /api/users/:id
-```
-
-#### Create New User
-```
-POST /api/users
+POST /api/auth/register
 Content-Type: application/json
 
 {
   "name": "John Doe",
   "email": "john@example.com",
+  "password": "password123",
   "role": "Staff"
 }
 ```
 
-#### Update User
+#### Login
 ```
-PUT /api/users/:id
+POST /api/auth/login
 Content-Type: application/json
 
 {
-  "name": "John Doe Updated",
-  "email": "john.updated@example.com",
-  "role": "Manager"
+  "email": "john@example.com",
+  "password": "password123"
 }
 ```
 
-#### Delete User
+### 🔒 Protected Endpoints (Require JWT Token)
+
+#### Get Current Profile
 ```
-DELETE /api/users/:id
+GET /api/auth/me
+Authorization: Bearer <your_token>
 ```
+
+#### Get All Users
+```
+GET /api/users
+Authorization: Bearer <your_token>
+```
+
+#### Create New User (Administrator only)
+```
+POST /api/users
+Authorization: Bearer <your_token>
+Content-Type: application/json
+
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123",
+  "role": "Staff"
+}
+```
+
+**📚 Dokumentasi Lengkap:** Lihat [packages/backend/API.md](./packages/backend/API.md) untuk semua endpoints dan examples.
+
+**📖 Swagger UI:** Akses interactive API documentation di `http://localhost:5000/api-docs` - Lihat [packages/backend/SWAGGER.md](./packages/backend/SWAGGER.md) untuk panduan lengkap.
 
 ## 🎨 Features
 
@@ -177,12 +199,18 @@ DELETE /api/users/:id
 
 ### Backend
 - ✅ RESTful API architecture
+- ✅ **Swagger/OpenAPI Documentation** - Interactive API docs
+- ✅ **PostgreSQL database dengan Sequelize ORM**
+- ✅ **JWT Authentication & Authorization**
+- ✅ **Role-based Access Control (Admin, Manager, Staff)**
+- ✅ **Password hashing dengan bcrypt**
 - ✅ CORS enabled
 - ✅ Request logging
 - ✅ Error handling middleware
 - ✅ Environment variables support
 - ✅ Auto-reload dengan Nodemon
 - ✅ CRUD operations untuk Users
+- ✅ Database seeder untuk initial data
 
 ### Monorepo
 - ✅ Lerna untuk package management
@@ -214,7 +242,27 @@ Edit `packages/backend/.env` untuk mengubah konfigurasi:
 ```env
 PORT=5000
 NODE_ENV=development
+
+# Database Configuration
+DB_HOST=db
+DB_PORT=5432
+DB_NAME=minierp
+DB_USER=user
+DB_PASSWORD=password
+
+# JWT Configuration
+JWT_SECRET=your-secret-key-change-this-in-production
+JWT_EXPIRES_IN=7d
 ```
+
+### Default Users (Setelah Seed)
+
+| Email | Password | Role |
+|-------|----------|------|
+| ahmad.wijaya@minierp.com | password123 | Administrator |
+| siti.nurhaliza@minierp.com | password123 | Manager |
+| budi.santoso@minierp.com | password123 | Staff |
+| dewi.lestari@minierp.com | password123 | Staff |
 
 ## 📝 Lerna Commands
 
@@ -267,15 +315,30 @@ Pastikan backend sudah running dan CORS sudah enabled di `packages/backend/src/s
 
 ## 📚 Next Steps
 
-Beberapa fitur yang bisa ditambahkan:
-- [ ] Authentication & Authorization
-- [ ] Database integration (PostgreSQL/MongoDB)
+✅ **IMPLEMENTED:**
+- ✅ Authentication & Authorization dengan JWT
+- ✅ Database integration (PostgreSQL + Sequelize)
+- ✅ Password hashing & security
+- ✅ Role-based access control
+
+🔜 **TODO:**
+- [ ] Frontend: Integrate authentication UI
 - [ ] State management (Redux/Zustand)
-- [ ] Form validation
+- [ ] Advanced form validation
 - [ ] Unit & Integration tests
 - [ ] Docker containerization
 - [ ] CI/CD pipeline
 - [ ] API documentation (Swagger)
+- [ ] Refresh token mechanism
+- [ ] Email verification
+- [ ] Password reset flow
+
+## 📖 Documentation
+
+- **[QUICKSTART.md](./QUICKSTART.md)** - Quick start guide untuk setup & testing
+- **[IMPLEMENTATION.md](./IMPLEMENTATION.md)** - Detail implementasi ORM & JWT
+- **[packages/backend/API.md](./packages/backend/API.md)** - Complete API reference
+- **[packages/backend/README.md](./packages/backend/README.md)** - Backend setup guide
 
 ## 📄 License
 
