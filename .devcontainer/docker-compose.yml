@@ -1,0 +1,30 @@
+services:
+  minierp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: sleep infinity
+    ports:
+      - "5000:5000"
+      - "5173:5173"
+    environment:
+      - DATABASE_URL=postgres://user:password@db:5432/minierp
+    depends_on:
+      - db
+    volumes:
+      - ..:/workspace:cached
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=minierp
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:

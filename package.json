@@ -1,0 +1,24 @@
+{
+    "name": "minierp",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Mini ERP System with React Frontend and Express Backend",
+    "scripts": {
+        "install:all": "npm install",
+        "clean": "lerna clean",
+        "kill-ports": "./scripts/kill-dev-ports.sh",
+        "kill-port": "node scripts/kill-port.js",
+        "predev": "./scripts/kill-dev-ports.sh",
+        "dev": "lerna run dev --parallel",
+        "dev:frontend": "lerna run dev --scope=@minierp/frontend",
+        "dev:backend": "lerna run dev --scope=@minierp/backend",
+        "build": "lerna run build",
+        "build:frontend": "lerna run build --scope=@minierp/frontend"
+    },
+    "devDependencies": {
+        "lerna": "^8.0.0"
+    },
+    "workspaces": [
+        "packages/*"
+    ]
+}

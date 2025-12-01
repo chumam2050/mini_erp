@@ -1,0 +1,20 @@
+{
+	"name": "Mini ERP Dev Container",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "minierp",
+	"workspaceFolder": "/workspace",
+	"forwardPorts": [
+		5000,
+		5173
+	],
+	"remoteUser": "node",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode"
+			]
+		}
+	},
+	"shutdownAction": "stopCompose"
+}
