@@ -1,16 +1,14 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { LogOut, Plus, Search, Package, TrendingUp, TrendingDown, DollarSign, Box } from 'lucide-react'
+import Navbar from '@/components/Navbar'
+import { Plus, Search, Package, TrendingDown, DollarSign, Box } from 'lucide-react'
 
 export default function ProductsPage() {
-  const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
 
   // Sample data
@@ -22,12 +20,6 @@ export default function ProductsPage() {
     { id: 5, name: 'Mechanical Keyboard', sku: 'ACC-005', category: 'Accessories', stock: 0, price: 1200000, status: 'Out of Stock' },
     { id: 6, name: 'Wireless Mouse', sku: 'ACC-006', category: 'Accessories', stock: 156, price: 350000, status: 'In Stock' },
   ]
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    navigate('/login')
-  }
 
   const getStatusBadge = (status) => {
     const variants = {
@@ -53,27 +45,7 @@ export default function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">Inventory Management</h1>
-            <p className="text-sm text-muted-foreground">
-              Kelola produk dan stok inventory
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button onClick={() => navigate('/dashboard')} variant="outline">
-              Dashboard
-            </Button>
-            <Button onClick={handleLogout} variant="outline">
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">

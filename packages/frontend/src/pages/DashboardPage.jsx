@@ -5,10 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { LogOut, Users, Activity, TrendingUp, Package, Mail, Shield } from 'lucide-react'
+import Navbar from '@/components/Navbar'
+import { Users, Activity, TrendingUp, Package, Mail, Shield } from 'lucide-react'
 
 export default function DashboardPage() {
   const [users, setUsers] = useState([])
@@ -65,28 +64,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">MiniERP System</h1>
-            <p className="text-sm text-muted-foreground">
-              Selamat datang, {user?.name}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button onClick={() => navigate('/products')} variant="outline">
-              <Package className="mr-2 h-4 w-4" />
-              Inventory
-            </Button>
-            <Button onClick={handleLogout} variant="outline">
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">

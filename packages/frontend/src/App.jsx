@@ -3,6 +3,7 @@ import { ProtectedRoute, PublicRoute } from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import ProductsPage from './pages/ProductsPage'
+import UsersPage from './pages/UsersPage'
 
 function App() {
   return (
@@ -28,6 +29,14 @@ function App() {
         element={
           <ProtectedRoute>
             <ProductsPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/users" 
+        element={
+          <ProtectedRoute>
+            <UsersPage />
           </ProtectedRoute>
         } 
       />
