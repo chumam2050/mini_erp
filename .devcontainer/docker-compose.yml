@@ -1,5 +1,6 @@
 services:
   minierp:
+    container_name: minierp
     build:
       context: .
       dockerfile: Dockerfile
