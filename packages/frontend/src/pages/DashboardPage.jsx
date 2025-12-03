@@ -18,12 +18,10 @@ export default function DashboardPage() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Check authentication
     const token = localStorage.getItem('token')
     const userData = localStorage.getItem('user')
     
     if (!token || !userData) {
-      navigate('/login')
       return
     }
 
