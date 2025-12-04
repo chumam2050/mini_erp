@@ -1,6 +1,13 @@
 import express from 'express'
-import User from '../models/User.js'
 import { authenticateToken, authorize } from '../middleware/auth.js'
+import { healthCheck } from '../controllers/healthController.js'
+import {
+    getAllUsers,
+    getUserById,
+    createUser,
+    updateUser,
+    deleteUser
+} from '../controllers/userController.js'
 
 const router = express.Router()
 
@@ -18,16 +25,7 @@ const router = express.Router()
  *             schema:
  *               $ref: '#/components/schemas/HealthCheck'
  */
-// Health check endpoint
-router.get('/health', (req, res) => {
-    res.json({
-        status: 'OK',
-        message: 'Backend is running smoothly',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development'
-    })
-})
+router.get('/health', healthCheck)
 
 /**
  * @swagger
@@ -49,21 +47,7 @@ router.get('/health', (req, res) => {
  *       401:
  *         description: Unauthorized
  */
-// Get all users - requires authentication
-router.get('/users', authenticateToken, async (req, res) => {
-    try {
-        const users = await User.findAll({
-            order: [['id', 'ASC']]
-        })
-        res.json(users)
-    } catch (error) {
-        console.error('Fetch users error:', error)
-        res.status(500).json({
-            error: 'Failed to fetch users',
-            message: error.message
-        })
-    }
-})
+router.get('/users', authenticateToken, getAllUsers)
 
 /**
  * @swagger
@@ -92,28 +76,7 @@ router.get('/users', authenticateToken, async (req, res) => {
  *       401:
  *         description: Unauthorized
  */
-// Get user by ID - requires authentication
-router.get('/users/:id', authenticateToken, async (req, res) => {
-    try {
-        const userId = parseInt(req.params.id)
-        const user = await User.findByPk(userId)
-
-        if (!user) {
-            return res.status(404).json({
-                error: 'User not found',
-                message: `User with ID ${userId} does not exist`
-            })
-        }
-
-        res.json(user)
-    } catch (error) {
-        console.error('Fetch user error:', error)
-        res.status(500).json({
-            error: 'Failed to fetch user',
-            message: error.message
-        })
-    }
-})
+router.get('/users/:id', authenticateToken, getUserById)
 
 /**
  * @swagger
@@ -148,52 +111,7 @@ router.get('/users/:id', authenticateToken, async (req, res) => {
  *       403:
  *         description: Forbidden - Administrator role required
  */
-// Create new user - requires Administrator role
-router.post('/users', authenticateToken, authorize('Administrator'), async (req, res) => {
-    try {
-        const { name, email, password, role } = req.body
-
-        if (!name || !email || !password) {
-            return res.status(400).json({
-                error: 'Validation error',
-                message: 'Name, email, and password are required'
-            })
-        }
-
-        const user = await User.create({
-            name,
-            email,
-            password,
-            role: role || 'Staff'
-        })
-
-        res.status(201).json({
-            message: 'User created successfully',
-            user: user.toJSON()
-        })
-    } catch (error) {
-        console.error('Create user error:', error)
-        
-        if (error.name === 'SequelizeValidationError') {
-            return res.status(400).json({
-                error: 'Validation error',
-                message: error.errors.map(e => e.message).join(', ')
-            })
-        }
-        
-        if (error.name === 'SequelizeUniqueConstraintError') {
-            return res.status(400).json({
-                error: 'Validation error',
-                message: 'Email already exists'
-            })
-        }
-
-        res.status(500).json({
-            error: 'Failed to create user',
-            message: error.message
-        })
-    }
-})
+router.post('/users', authenticateToken, authorize('Administrator'), createUser)
 
 /**
  * @swagger
@@ -237,47 +155,7 @@ router.post('/users', authenticateToken, authorize('Administrator'), async (req,
  *       404:
  *         description: User not found
  */
-// Update user - requires Administrator or Manager role
-router.put('/users/:id', authenticateToken, authorize('Administrator', 'Manager'), async (req, res) => {
-    try {
-        const userId = parseInt(req.params.id)
-        const user = await User.findByPk(userId)
-
-        if (!user) {
-            return res.status(404).json({
-                error: 'User not found',
-                message: `User with ID ${userId} does not exist`
-            })
-        }
-
-        const { name, email, role } = req.body
-
-        if (name) user.name = name
-        if (email) user.email = email
-        if (role) user.role = role
-
-        await user.save()
-
-        res.json({
-            message: 'User updated successfully',
-            user: user.toJSON()
-        })
-    } catch (error) {
-        console.error('Update user error:', error)
-        
-        if (error.name === 'SequelizeValidationError') {
-            return res.status(400).json({
-                error: 'Validation error',
-                message: error.errors.map(e => e.message).join(', ')
-            })
-        }
-
-        res.status(500).json({
-            error: 'Failed to update user',
-            message: error.message
-        })
-    }
-})
+router.put('/users/:id', authenticateToken, authorize('Administrator', 'Manager'), updateUser)
 
 /**
  * @swagger
@@ -306,41 +184,6 @@ router.put('/users/:id', authenticateToken, authorize('Administrator', 'Manager'
  *       404:
  *         description: User not found
  */
-// Delete user - requires Administrator role
-router.delete('/users/:id', authenticateToken, authorize('Administrator'), async (req, res) => {
-    try {
-        const userId = parseInt(req.params.id)
-        const user = await User.findByPk(userId)
-
-        if (!user) {
-            return res.status(404).json({
-                error: 'User not found',
-                message: `User with ID ${userId} does not exist`
-            })
-        }
-
-        // Don't allow deleting self
-        if (user.id === req.user.id) {
-            return res.status(400).json({
-                error: 'Delete failed',
-                message: 'You cannot delete your own account'
-            })
-        }
-
-        const deletedUser = user.toJSON()
-        await user.destroy()
-
-        res.json({
-            message: 'User deleted successfully',
-            user: deletedUser
-        })
-    } catch (error) {
-        console.error('Delete user error:', error)
-        res.status(500).json({
-            error: 'Failed to delete user',
-            message: error.message
-        })
-    }
-})
+router.delete('/users/:id', authenticateToken, authorize('Administrator'), deleteUser)
 
 export default router

@@ -11,6 +11,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     python3 \
     && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
+RUN npm install -g lerna@8
+
 # Set working directory
 WORKDIR /workspace
 
