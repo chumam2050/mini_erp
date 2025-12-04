@@ -117,9 +117,6 @@ export default function LoginPage() {
                 </>
               )}
             </Button>
-            <p className="text-sm text-muted-foreground text-center">
-              Demo: admin@minierp.com / admin123
-            </p>
           </CardFooter>
         </form>
       </Card>
