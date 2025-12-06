@@ -16,7 +16,9 @@
         "build:frontend": "lerna run build --scope=@minierp/frontend",
         "test": "lerna run test",
         "test:backend": "lerna run test --scope=@minierp/backend",
-        "test:watch": "lerna run test:watch --parallel"
+        "test:watch": "lerna run test:watch --parallel",
+        "seed": "lerna run seed",
+        "seed:backend": "lerna run seed --scope=@minierp/backend"
     },
     "devDependencies": {
         "lerna": "^8.0.0"

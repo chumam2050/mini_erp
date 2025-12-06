@@ -107,10 +107,11 @@ export const updateUser = async (req, res) => {
             })
         }
 
-        const { name, email, role } = req.body
+        const { name, email, password, role } = req.body
 
         if (name) user.name = name
         if (email) user.email = email
+        if (password) user.password = password
         if (role) user.role = role
 
         await user.save()
