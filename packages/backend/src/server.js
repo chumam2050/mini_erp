@@ -5,6 +5,7 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
 import swaggerUi from 'swagger-ui-express'
+import chalk from 'chalk'
 import sequelize, { testConnection } from './config/database.js'
 import swaggerSpec from './config/swagger.js'
 import apiRoutes from './routes/api.js'
@@ -29,7 +30,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
 // Request logging middleware
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
+    console.log(chalk.gray(`${new Date().toISOString()} - ${req.method} ${req.path}`))
     next()
 })
 
@@ -98,27 +99,27 @@ const startServer = async () => {
         
         // Sync database models
         await sequelize.sync({ alter: true })
-        console.log('✅ Database models synchronized')
+        console.log(chalk.green('✅ Database models synchronized'))
 
         // Start Express server hanya jika bukan test environment
         if (process.env.NODE_ENV !== 'test') {
             app.listen(PORT, () => {
-                console.log(`
+                console.log(chalk.cyan(`
 ╔════════════════════════════════════════╗
-║   MiniERP Backend Server Started      ║
+║   ${chalk.bold.yellow('MiniERP Backend Server Started')}      ║
 ╠════════════════════════════════════════╣
-║   Port: ${PORT}                           ║
-║   Environment: ${process.env.NODE_ENV || 'development'}            ║
-║   Time: ${new Date().toLocaleString()}   ║
+║   ${chalk.white('Port:')} ${chalk.green(PORT)}                           ║
+║   ${chalk.white('Environment:')} ${chalk.blue(process.env.NODE_ENV || 'development')}            ║
+║   ${chalk.white('Time:')} ${chalk.gray(new Date().toLocaleString())}   ║
 ╚════════════════════════════════════════╝
-    `)
-                console.log(`🚀 Server is running on http://localhost:${PORT}`)
-                console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`)
-                console.log(`📄 Swagger JSON: http://localhost:${PORT}/api-docs.json\n`)
+    `))
+                console.log(chalk.blue(`🚀 Server is running on ${chalk.underline(`http://localhost:${PORT}`)}`))
+                console.log(chalk.yellow(`📚 API Documentation: ${chalk.underline(`http://localhost:${PORT}/api-docs`)}`))
+                console.log(chalk.yellow(`📄 Swagger JSON: ${chalk.underline(`http://localhost:${PORT}/api-docs.json`)}\n`))
             })
         }
     } catch (error) {
-        console.error('❌ Failed to start server:', error)
+        console.error(chalk.red('❌ Failed to start server:'), error)
         if (process.env.NODE_ENV !== 'test') {
             process.exit(1)
         }

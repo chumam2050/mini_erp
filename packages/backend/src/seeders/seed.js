@@ -1,18 +1,19 @@
 import sequelize from '../config/database.js'
+import chalk from 'chalk'
 import User from '../models/User.js'
 import Product from '../models/Product.js'
 
 const seedDatabase = async () => {
     try {
-        console.log('🌱 Starting database seeding...')
+        console.log(chalk.blue('🌱 Starting database seeding...'))
 
         // Connect to database
         await sequelize.authenticate()
-        console.log('✅ Database connected')
+        console.log(chalk.green('✅ Database connected'))
 
         // Sync models (force: true will drop existing tables)
         await sequelize.sync({ force: true })
-        console.log('✅ Database tables created')
+        console.log(chalk.green('✅ Database tables created'))
 
         // Create users
         const users = await User.bulkCreate([
@@ -44,7 +45,7 @@ const seedDatabase = async () => {
             individualHooks: true // This ensures password hashing hooks are called
         })
 
-        console.log(`✅ Created ${users.length} users`)
+        console.log(chalk.green(`✅ Created ${users.length} users`))
 
         // Create products
         const products = await Product.bulkCreate([
@@ -104,18 +105,18 @@ const seedDatabase = async () => {
             }
         ])
 
-        console.log(`✅ Created ${products.length} products`)
+        console.log(chalk.green(`✅ Created ${products.length} products`))
 
-        console.log('\n🎉 Database seeding completed successfully!')
-        console.log('\n📝 Login credentials:')
-        console.log('Administrator: ahmad.wijaya@minierp.com / password123')
-        console.log('Manager: siti.nurhaliza@minierp.com / password123')
-        console.log('Staff: budi.santoso@minierp.com / password123')
-        console.log('Staff: dewi.lestari@minierp.com / password123')
+        console.log(chalk.green('\n🎉 Database seeding completed successfully!'))
+        console.log(chalk.yellow('\n📝 Login credentials:'))
+        console.log(chalk.cyan('Administrator: ahmad.wijaya@minierp.com / password123'))
+        console.log(chalk.cyan('Manager: siti.nurhaliza@minierp.com / password123'))
+        console.log(chalk.cyan('Staff: budi.santoso@minierp.com / password123'))
+        console.log(chalk.cyan('Staff: dewi.lestari@minierp.com / password123'))
 
         process.exit(0)
     } catch (error) {
-        console.error('❌ Seeding failed:', error)
+        console.error(chalk.red('❌ Seeding failed:'), error)
         process.exit(1)
     }
 }
