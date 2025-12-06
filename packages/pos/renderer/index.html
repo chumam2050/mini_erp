@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MiniERP POS</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <!-- Custom Title Bar -->
+  <div class="titlebar">
+    <div class="titlebar-drag-region">
+      <div class="window-title">MiniERP Point of Sales</div>
+    </div>
+    <div class="window-controls">
+      <button class="window-control" id="minimize-btn">−</button>
+      <button class="window-control" id="maximize-btn">□</button>
+      <button class="window-control close" id="close-btn">✕</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="app-container">
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen">
+      <div class="login-container">
+        <div class="login-header">
+          <div class="login-icon">🛒</div>
+          <h1>MiniERP POS</h1>
+          <p>Masukkan kredensial Anda untuk melanjutkan</p>
+        </div>
+        
+        <div id="login-error" class="error-message" style="display: none;"></div>
+
+        <form id="login-form">
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="nama@example.com" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="••••••••" required>
+          </div>
+          
+          <button type="submit" class="btn btn-primary" id="login-btn">
+            <span>Login</span>
+          </button>
+        </form>
+        
+        <div class="login-footer">
+          <p>Version: <span id="app-version">1.0.0</span></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- POS Screen -->
+    <div id="pos-screen" class="screen" style="display: none;">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="user-profile">
+            <div class="user-avatar">👤</div>
+            <div class="user-info">
+              <div class="user-name" id="user-name">User</div>
+              <div class="user-role" id="user-role">Staff</div>
+            </div>
+          </div>
+        </div>
+        
+        <nav class="sidebar-nav">
+          <button class="nav-item active" data-view="cashier">
+            <span class="nav-icon">💰</span>
+            <span>Kasir</span>
+          </button>
+          <button class="nav-item" data-view="products">
+            <span class="nav-icon">📦</span>
+            <span>Produk</span>
+          </button>
+          <button class="nav-item" data-view="transactions">
+            <span class="nav-icon">📊</span>
+            <span>Transaksi</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="btn btn-secondary btn-block" id="logout-btn">
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Cashier View -->
+        <div id="cashier-view" class="view active">
+          <div class="pos-layout">
+            <!-- Products Grid -->
+            <div class="products-section">
+              <div class="section-header">
+                <h2>Produk</h2>
+                <input type="search" id="product-search" placeholder="Cari produk..." class="search-input">
+              </div>
+              <div id="products-grid" class="products-grid">
+                <!-- Products will be loaded here -->
+              </div>
+            </div>
+
+            <!-- Cart Section -->
+            <div class="cart-section">
+              <div class="section-header">
+                <h2>Keranjang</h2>
+              </div>
+              
+              <div id="cart-items" class="cart-items">
+                <div class="empty-cart">
+                  <div class="empty-icon">🛒</div>
+                  <p>Keranjang kosong</p>
+                </div>
+              </div>
+
+              <div class="cart-summary">
+                <div class="summary-row">
+                  <span>Subtotal</span>
+                  <span id="subtotal">Rp 0</span>
+                </div>
+                <div class="summary-row">
+                  <span>Pajak (10%)</span>
+                  <span id="tax">Rp 0</span>
+                </div>
+                <div class="summary-row total">
+                  <span>Total</span>
+                  <span id="total">Rp 0</span>
+                </div>
+              </div>
+
+              <div class="cart-actions">
+                <button class="btn btn-secondary btn-block" id="clear-cart-btn">Kosongkan</button>
+                <button class="btn btn-primary btn-block" id="checkout-btn" disabled>Bayar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Products View -->
+        <div id="products-view" class="view">
+          <div class="view-header">
+            <h2>Daftar Produk</h2>
+          </div>
+          <div id="products-list" class="products-list">
+            <!-- Products table will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Transactions View -->
+        <div id="transactions-view" class="view">
+          <div class="view-header">
+            <h2>Riwayat Transaksi</h2>
+          </div>
+          <div id="transactions-list" class="transactions-list">
+            <p class="text-muted">Fitur dalam pengembangan</p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Payment Modal -->
+  <div id="payment-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Pembayaran</h3>
+        <button class="modal-close" id="close-payment-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="payment-total">
+          <span>Total Pembayaran</span>
+          <span id="payment-total" class="amount">Rp 0</span>
+        </div>
+        <div class="form-group">
+          <label for="payment-amount">Jumlah Dibayar</label>
+          <input type="number" id="payment-amount" placeholder="0" class="input-lg">
+        </div>
+        <div class="change-display">
+          <span>Kembalian</span>
+          <span id="change-amount">Rp 0</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancel-payment-btn">Batal</button>
+        <button class="btn btn-primary" id="confirm-payment-btn" disabled>Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
