@@ -6,7 +6,7 @@ const Alert = React.forwardRef(({ className, variant = "default", ...props }, re
     ref={ref}
     role="alert"
     className={cn(
-      "relative w-full rounded-lg border p-4",
+      "relative w-full rounded-lg border p-4 flex flex-col gap-2",
       {
         "bg-background text-foreground": variant === "default",
         "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive":
@@ -31,7 +31,7 @@ AlertTitle.displayName = "AlertTitle"
 const AlertDescription = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm [&_p]:leading-relaxed", className)}
+    className={cn("text-sm [&_p]:leading-relaxed flex items-start gap-2", className)}
     {...props}
   />
 ))
