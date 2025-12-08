@@ -11,6 +11,7 @@ const POSPage = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [category, setCategory] = useState('')
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const [viewMode, setViewMode] = useState('list') // 'grid' or 'list'
   
   // Sale calculations
   const [discount, setDiscount] = useState(0)
@@ -145,25 +146,25 @@ const POSPage = () => {
   const total = afterDiscount + tax
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Point of Sale</h1>
+          <h1 className="text-2xl font-bold text-foreground">Point of Sale</h1>
           {cartItems.length > 0 && (
             <button
               onClick={clearCart}
-              className="px-4 py-2 text-red-600 border border-red-600 rounded hover:bg-red-50"
+              className="px-4 py-2 text-red-600 dark:text-red-400 border border-red-600 dark:border-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
             >
               Clear Cart
             </button>
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 h-[calc(100vh-200px)]">
           {/* Products Grid */}
-          <div className="lg:col-span-2 overflow-hidden">
+          <div className="lg:col-span-3 overflow-hidden rounded-lg">
             <ProductGrid
               products={products}
               onAddToCart={addToCart}
@@ -172,11 +173,13 @@ const POSPage = () => {
               category={category}
               onCategoryChange={setCategory}
               isLoading={isLoading}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
             />
           </div>
 
           {/* Cart */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <Cart
               items={cartItems}
               onUpdateQuantity={updateCartItemQuantity}

@@ -48,9 +48,9 @@ function Navbar() {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: Home },
-    { name: 'POS', path: '/pos', icon: CreditCard },
-    { name: 'Sales', path: '/sales', icon: BarChart3 },
     { name: 'Products', path: '/products', icon: Package },
+    { name: 'Sales', path: '/sales', icon: BarChart3 },
+    { name: 'POS', path: '/pos', icon: CreditCard },
     { name: 'Users', path: '/users', icon: Users },
   ]
 
