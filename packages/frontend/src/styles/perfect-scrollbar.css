@@ -1,0 +1,67 @@
+/* Perfect Scrollbar Custom Styling */
+
+.ps {
+  position: relative;
+}
+
+.ps__rail-x {
+  display: none !important;
+}
+
+.ps__rail-y {
+  background-color: transparent;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+  width: 8px;
+  right: 0;
+}
+
+.ps:hover .ps__rail-y,
+.ps__rail-y:hover {
+  opacity: 1;
+}
+
+.ps__thumb-y {
+  background-color: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+  width: 6px;
+  right: 1px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.ps__thumb-y:hover {
+  background-color: hsl(var(--muted-foreground) / 0.6);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .ps__thumb-y {
+    background-color: hsl(var(--muted-foreground) / 0.4);
+  }
+  
+  .ps__thumb-y:hover {
+    background-color: hsl(var(--muted-foreground) / 0.7);
+  }
+}
+
+/* Theme-aware styling */
+[data-theme="dark"] .ps__thumb-y {
+  background-color: hsl(var(--muted-foreground) / 0.4);
+}
+
+[data-theme="dark"] .ps__thumb-y:hover {
+  background-color: hsl(var(--muted-foreground) / 0.7);
+}
+
+/* Smooth scrolling behavior */
+.ps__rail-y,
+.ps__thumb-y {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Hide scrollbar on mobile */
+@media (max-width: 768px) {
+  .ps__rail-y {
+    display: none !important;
+  }
+}
