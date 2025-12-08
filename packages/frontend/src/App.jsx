@@ -4,6 +4,8 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import ProductsPage from './pages/ProductsPage'
 import UsersPage from './pages/UsersPage'
+import POSPage from './pages/POSPage'
+import SalesPage from './pages/SalesPage'
 
 function App() {
   return (
@@ -37,6 +39,22 @@ function App() {
         element={
           <ProtectedRoute>
             <UsersPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/pos" 
+        element={
+          <ProtectedRoute>
+            <POSPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/sales" 
+        element={
+          <ProtectedRoute>
+            <SalesPage />
           </ProtectedRoute>
         } 
       />

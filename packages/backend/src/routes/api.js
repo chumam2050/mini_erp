@@ -21,6 +21,7 @@ import {
     deleteProductMedia
 } from '../controllers/mediaController.js'
 import { upload } from '../config/multer.js'
+import posRoutes from './pos.js'
 
 const router = express.Router()
 
@@ -424,5 +425,8 @@ router.put('/products/:id/primary-image', authenticateToken, authorize('Administ
  *         description: File deleted successfully
  */
 router.delete('/products/:id/media', authenticateToken, authorize('Administrator', 'Manager'), deleteProductMedia)
+
+// POS Routes
+router.use('/pos', posRoutes)
 
 export default router

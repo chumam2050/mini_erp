@@ -27,10 +27,12 @@ import {
   Settings, 
   LogOut,
   User,
-  ChevronDown
+  ChevronDown,
+  CreditCard,
+  BarChart3
 } from 'lucide-react'
 
-export default function Navbar() {
+function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
@@ -46,6 +48,8 @@ export default function Navbar() {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: Home },
+    { name: 'POS', path: '/pos', icon: CreditCard },
+    { name: 'Sales', path: '/sales', icon: BarChart3 },
     { name: 'Products', path: '/products', icon: Package },
     { name: 'Users', path: '/users', icon: Users },
   ]
@@ -221,3 +225,5 @@ export default function Navbar() {
     </header>
   )
 }
+
+export default Navbar

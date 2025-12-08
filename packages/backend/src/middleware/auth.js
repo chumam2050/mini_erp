@@ -69,3 +69,6 @@ export const authorize = (...roles) => {
         next()
     }
 }
+
+// Default export adalah authenticateToken
+export default authenticateToken

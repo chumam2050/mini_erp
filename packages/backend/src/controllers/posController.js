@@ -1,0 +1,484 @@
+import Sale from '../models/Sale.js'
+import SaleItem from '../models/SaleItem.js'
+import Product from '../models/Product.js'
+import User from '../models/User.js'
+import sequelize, { Op } from '../config/database.js'
+
+// Get all sales with pagination and filters
+export const getAllSales = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1
+        const limit = parseInt(req.query.limit) || 10
+        const offset = (page - 1) * limit
+        const { startDate, endDate, cashier, status, search } = req.query
+
+        let whereClause = {}
+        
+        // Date range filter
+        if (startDate && endDate) {
+            whereClause.saleDate = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            }
+        }
+        
+        // Cashier filter
+        if (cashier) {
+            whereClause.cashierId = cashier
+        }
+        
+        // Status filter
+        if (status) {
+            whereClause.status = status
+        }
+        
+        // Search filter
+        if (search) {
+            whereClause[Op.or] = [
+                { saleNumber: { [Op.iLike]: `%${search}%` } },
+                { customerName: { [Op.iLike]: `%${search}%` } },
+                { customerPhone: { [Op.iLike]: `%${search}%` } }
+            ]
+        }
+
+        const { count, rows: sales } = await Sale.findAndCountAll({
+            where: whereClause,
+            include: [
+                {
+                    model: User,
+                    as: 'cashier',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: SaleItem,
+                    as: 'items',
+                    include: [
+                        {
+                            model: Product,
+                            attributes: ['id', 'name', 'sku']
+                        }
+                    ]
+                }
+            ],
+            order: [['createdAt', 'DESC']],
+            limit,
+            offset
+        })
+
+        res.json({
+            success: true,
+            data: {
+                sales,
+                pagination: {
+                    page,
+                    limit,
+                    total: count,
+                    pages: Math.ceil(count / limit)
+                }
+            }
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching sales',
+            error: error.message
+        })
+    }
+}
+
+// Get sale by ID
+export const getSaleById = async (req, res) => {
+    try {
+        const { id } = req.params
+
+        const sale = await Sale.findByPk(id, {
+            include: [
+                {
+                    model: User,
+                    as: 'cashier',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: User,
+                    as: 'customer',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: SaleItem,
+                    as: 'items',
+                    include: [
+                        {
+                            model: Product,
+                            attributes: ['id', 'name', 'sku', 'price']
+                        }
+                    ]
+                }
+            ]
+        })
+
+        if (!sale) {
+            return res.status(404).json({
+                success: false,
+                message: 'Sale not found'
+            })
+        }
+
+        res.json({
+            success: true,
+            data: sale
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching sale',
+            error: error.message
+        })
+    }
+}
+
+// Create new sale
+export const createSale = async (req, res) => {
+    const transaction = await sequelize.transaction()
+    
+    try {
+        const {
+            customerId,
+            customerName,
+            customerPhone,
+            customerEmail,
+            items,
+            discount,
+            discountType,
+            taxRate,
+            paymentMethod,
+            amountPaid,
+            notes
+        } = req.body
+
+        const cashierId = req.user.id
+
+        // Validate items
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'At least one item is required'
+            })
+        }
+
+        // Calculate totals
+        let subtotal = 0
+        const validatedItems = []
+
+        for (const item of items) {
+            const product = await Product.findByPk(item.productId, { transaction })
+            
+            if (!product) {
+                throw new Error(`Product with ID ${item.productId} not found`)
+            }
+
+            if (product.stock < item.quantity) {
+                throw new Error(`Insufficient stock for product ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`)
+            }
+
+            const itemSubtotal = item.quantity * item.unitPrice
+            subtotal += itemSubtotal
+
+            validatedItems.push({
+                productId: item.productId,
+                productName: product.name,
+                productSku: product.sku,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                discount: item.discount || 0,
+                discountType: item.discountType || 'fixed'
+            })
+        }
+
+        // Apply sale-level discount
+        let discountAmount = 0
+        if (discount > 0) {
+            if (discountType === 'percentage') {
+                discountAmount = subtotal * (discount / 100)
+            } else {
+                discountAmount = discount
+            }
+        }
+
+        const afterDiscount = subtotal - discountAmount
+        const tax = afterDiscount * (taxRate / 100)
+        const total = afterDiscount + tax
+        const change = amountPaid - total
+
+        if (change < 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Amount paid is insufficient'
+            })
+        }
+
+        // Create sale
+        const sale = await Sale.create({
+            customerId,
+            customerName,
+            customerPhone,
+            customerEmail,
+            cashierId,
+            subtotal,
+            discount: discountAmount,
+            discountType,
+            tax,
+            taxRate,
+            total,
+            amountPaid,
+            change,
+            paymentMethod,
+            notes
+        }, { transaction })
+
+        // Create sale items and update stock
+        for (const item of validatedItems) {
+            await SaleItem.create({
+                saleId: sale.id,
+                ...item
+            }, { transaction })
+
+            // Update product stock
+            await Product.decrement('stock', {
+                by: item.quantity,
+                where: { id: item.productId },
+                transaction
+            })
+        }
+
+        await transaction.commit()
+
+        // Fetch the complete sale with associations
+        const completeSale = await Sale.findByPk(sale.id, {
+            include: [
+                {
+                    model: User,
+                    as: 'cashier',
+                    attributes: ['id', 'name', 'email']
+                },
+                {
+                    model: SaleItem,
+                    as: 'items',
+                    include: [
+                        {
+                            model: Product,
+                            attributes: ['id', 'name', 'sku']
+                        }
+                    ]
+                }
+            ]
+        })
+
+        res.status(201).json({
+            success: true,
+            message: 'Sale created successfully',
+            data: completeSale
+        })
+    } catch (error) {
+        await transaction.rollback()
+        res.status(400).json({
+            success: false,
+            message: 'Error creating sale',
+            error: error.message
+        })
+    }
+}
+
+// Cancel sale
+export const cancelSale = async (req, res) => {
+    const transaction = await sequelize.transaction()
+    
+    try {
+        const { id } = req.params
+        const { reason } = req.body
+
+        const sale = await Sale.findByPk(id, {
+            include: [{ model: SaleItem, as: 'items' }]
+        }, { transaction })
+
+        if (!sale) {
+            return res.status(404).json({
+                success: false,
+                message: 'Sale not found'
+            })
+        }
+
+        if (sale.status === 'cancelled') {
+            return res.status(400).json({
+                success: false,
+                message: 'Sale is already cancelled'
+            })
+        }
+
+        // Restore product stock
+        for (const item of sale.items) {
+            await Product.increment('stock', {
+                by: item.quantity,
+                where: { id: item.productId },
+                transaction
+            })
+        }
+
+        // Update sale status
+        await sale.update({
+            status: 'cancelled',
+            notes: reason ? `${sale.notes ? sale.notes + '\n' : ''}Cancelled: ${reason}` : sale.notes
+        }, { transaction })
+
+        await transaction.commit()
+
+        res.json({
+            success: true,
+            message: 'Sale cancelled successfully',
+            data: sale
+        })
+    } catch (error) {
+        await transaction.rollback()
+        res.status(400).json({
+            success: false,
+            message: 'Error cancelling sale',
+            error: error.message
+        })
+    }
+}
+
+// Get sales summary/statistics
+export const getSalesSummary = async (req, res) => {
+    try {
+        const { period = 'today' } = req.query
+        
+        let dateFilter = {}
+        const now = new Date()
+        
+        switch (period) {
+            case 'today':
+                const startOfDay = new Date(now)
+                startOfDay.setHours(0, 0, 0, 0)
+                const endOfDay = new Date(now)
+                endOfDay.setHours(23, 59, 59, 999)
+                dateFilter = {
+                    saleDate: {
+                        [sequelize.Op.between]: [startOfDay, endOfDay]
+                    }
+                }
+                break
+            case 'week':
+                const startOfWeek = new Date(now)
+                startOfWeek.setDate(now.getDate() - now.getDay())
+                startOfWeek.setHours(0, 0, 0, 0)
+                dateFilter = {
+                    saleDate: {
+                        [Op.gte]: startOfWeek
+                    }
+                }
+                break
+            case 'month':
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+                dateFilter = {
+                    saleDate: {
+                        [Op.gte]: startOfMonth
+                    }
+                }
+                break
+        }
+
+        const summary = await Sale.findAll({
+            where: {
+                ...dateFilter,
+                status: 'completed'
+            },
+            attributes: [
+                [sequelize.fn('COUNT', sequelize.col('id')), 'totalSales'],
+                [sequelize.fn('SUM', sequelize.col('total')), 'totalRevenue'],
+                [sequelize.fn('SUM', sequelize.col('subtotal')), 'totalSubtotal'],
+                [sequelize.fn('SUM', sequelize.col('tax')), 'totalTax'],
+                [sequelize.fn('AVG', sequelize.col('total')), 'averageSale']
+            ],
+            raw: true
+        })
+
+        const paymentMethods = await Sale.findAll({
+            where: {
+                ...dateFilter,
+                status: 'completed'
+            },
+            attributes: [
+                'paymentMethod',
+                [sequelize.fn('COUNT', sequelize.col('id')), 'count'],
+                [sequelize.fn('SUM', sequelize.col('total')), 'total']
+            ],
+            group: ['paymentMethod'],
+            raw: true
+        })
+
+        res.json({
+            success: true,
+            data: {
+                period,
+                summary: summary[0],
+                paymentMethods
+            }
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching sales summary',
+            error: error.message
+        })
+    }
+}
+
+// Get products for POS (with stock info)
+export const getProductsForPOS = async (req, res) => {
+    try {
+        const { search, category, page = 1, limit = 20 } = req.query
+        const offset = (page - 1) * limit
+
+        let whereClause = {
+            stock: {
+                [Op.gt]: 0
+            }
+        }
+
+        if (search) {
+            whereClause[Op.or] = [
+                { name: { [Op.iLike]: `%${search}%` } },
+                { sku: { [Op.iLike]: `%${search}%` } }
+            ]
+        }
+
+        if (category) {
+            whereClause.category = category
+        }
+
+        const { count, rows: products } = await Product.findAndCountAll({
+            where: whereClause,
+            attributes: ['id', 'sku', 'name', 'category', 'price', 'stock', 'primaryImage'],
+            order: [['name', 'ASC']],
+            limit: parseInt(limit),
+            offset
+        })
+
+        res.json({
+            success: true,
+            data: {
+                products,
+                pagination: {
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    total: count,
+                    pages: Math.ceil(count / limit)
+                }
+            }
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching products',
+            error: error.message
+        })
+    }
+}

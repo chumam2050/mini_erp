@@ -3,6 +3,8 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
+const { Op } = Sequelize
+
 const sequelize = new Sequelize(
     process.env.DB_NAME || 'minierp',
     process.env.DB_USER || 'user',
@@ -32,4 +34,5 @@ export const testConnection = async () => {
     }
 }
 
+export { Op }
 export default sequelize

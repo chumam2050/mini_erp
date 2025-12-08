@@ -10,6 +10,8 @@ import sequelize, { testConnection } from './config/database.js'
 import swaggerSpec from './config/swagger.js'
 import apiRoutes from './routes/api.js'
 import authRoutes from './routes/auth.js'
+// Import models to ensure they are registered
+import './models/index.js'
 
 // Load environment variables
 dotenv.config()
