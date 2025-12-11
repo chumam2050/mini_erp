@@ -15,11 +15,16 @@ const sequelize = new Sequelize(
         dialect: 'postgres',
         logging: process.env.NODE_ENV === 'development' ? console.log : false,
         pool: {
-            max: 5,
+            max: process.env.NODE_ENV === 'test' ? 2 : 5,
             min: 0,
-            acquire: 30000,
-            idle: 10000
-        }
+            acquire: process.env.NODE_ENV === 'test' ? 5000 : 30000, // 5 detik untuk test, 30 detik untuk production
+            idle: process.env.NODE_ENV === 'test' ? 1000 : 10000   // 1 detik untuk test, 10 detik untuk production
+        },
+        dialectOptions: process.env.NODE_ENV === 'test' ? {
+            // Optimasi untuk test environment
+            statement_timeout: 5000, // 5 detik timeout untuk statements
+            idle_in_transaction_session_timeout: 5000 // 5 detik timeout untuk idle transactions
+        } : {}
     }
 )
 

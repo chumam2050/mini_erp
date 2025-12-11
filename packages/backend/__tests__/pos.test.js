@@ -296,7 +296,7 @@ describe('POS API', () => {
       expect(response.body.success).toBe(false)
       expect(response.body.message).toBe('Error creating sale')
       expect(response.body.error).toContain('Product with ID 99999 not found')
-    })
+    }, 10000)
 
     it('should return 400 if insufficient stock', async () => {
       const insufficientStockSaleData = {

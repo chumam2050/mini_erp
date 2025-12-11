@@ -14,4 +14,4 @@ process.env.DB_USER = 'user'
 process.env.DB_PASSWORD = 'password'
 
 // Increase timeout untuk database operations
-jest.setTimeout(10000)
+jest.setTimeout(15000)

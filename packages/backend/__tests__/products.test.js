@@ -8,8 +8,11 @@ describe('Products API', () => {
     let adminToken
 
     beforeAll(async () => {
-        // Sync database
-        await sequelize.sync({ force: true })
+        // Sync database dengan options yang lebih cepat untuk test
+        await sequelize.sync({ 
+            force: true,
+            logging: false // Disable logging untuk lebih cepat
+        })
 
         // Create test admin user
         await User.create({
@@ -28,7 +31,7 @@ describe('Products API', () => {
             })
         
         adminToken = response.body.token
-    }, 30000)
+    }, 15000)
 
     afterAll(async () => {
         await sequelize.close()
