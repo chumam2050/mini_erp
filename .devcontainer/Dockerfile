@@ -4,6 +4,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends \
     git \
     vim \
+    jq \
+    net-tools \
     curl \
     wget \
     ca-certificates \
