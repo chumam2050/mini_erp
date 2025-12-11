@@ -123,34 +123,7 @@ const Sale = sequelize.define('Sale', {
     }
 }, {
     tableName: 'sales',
-    timestamps: true,
-    hooks: {
-        beforeCreate: async (sale) => {
-            // Generate sale number
-            const date = new Date()
-            const year = date.getFullYear()
-            const month = String(date.getMonth() + 1).padStart(2, '0')
-            const day = String(date.getDate()).padStart(2, '0')
-            
-            // Find the last sale of the day
-            const lastSale = await Sale.findOne({
-                where: sequelize.where(
-                    sequelize.fn('DATE', sequelize.col('saleDate')),
-                    sequelize.fn('DATE', new Date())
-                ),
-                order: [['id', 'DESC']]
-            })
-            
-            let sequence = 1
-            if (lastSale) {
-                const lastNumber = lastSale.saleNumber
-                const lastSequence = parseInt(lastNumber.split('-')[3])
-                sequence = lastSequence + 1
-            }
-            
-            sale.saleNumber = `SALE-${year}${month}${day}-${String(sequence).padStart(4, '0')}`
-        }
-    }
+    timestamps: true
 })
 
 export default Sale

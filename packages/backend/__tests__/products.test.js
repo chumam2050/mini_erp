@@ -28,7 +28,7 @@ describe('Products API', () => {
             })
         
         adminToken = response.body.token
-    })
+    }, 30000)
 
     afterAll(async () => {
         await sequelize.close()

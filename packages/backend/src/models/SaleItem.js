@@ -1,7 +1,5 @@
 import { DataTypes } from 'sequelize'
 import sequelize from '../config/database.js'
-import Sale from './Sale.js'
-import Product from './Product.js'
 
 const SaleItem = sequelize.define('SaleItem', {
     id: {
@@ -11,19 +9,11 @@ const SaleItem = sequelize.define('SaleItem', {
     },
     saleId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Sale,
-            key: 'id'
-        }
+        allowNull: false
     },
     productId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-            model: Product,
-            key: 'id'
-        }
+        allowNull: false
     },
     productName: {
         type: DataTypes.STRING,

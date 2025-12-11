@@ -3,6 +3,7 @@ import SaleItem from '../models/SaleItem.js'
 import Product from '../models/Product.js'
 import User from '../models/User.js'
 import sequelize, { Op } from '../config/database.js'
+import { generateSaleNumber } from '../utils/saleUtils.js'
 
 // Get all sales with pagination and filters
 export const getAllSales = async (req, res) => {
@@ -146,15 +147,23 @@ export const createSale = async (req, res) => {
             customerPhone,
             customerEmail,
             items,
-            discount,
-            discountType,
-            taxRate,
-            paymentMethod,
+            discount = 0,
+            discountType = 'fixed',
+            taxRate = 0,
+            paymentMethod = 'cash',
             amountPaid,
             notes
         } = req.body
 
         const cashierId = req.user.id
+
+        // Validate required fields
+        if (!amountPaid || amountPaid <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Amount paid is required and must be greater than 0'
+            })
+        }
 
         // Validate items
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -169,6 +178,11 @@ export const createSale = async (req, res) => {
         const validatedItems = []
 
         for (const item of items) {
+            // Validate item structure
+            if (!item.productId || !item.quantity || !item.unitPrice) {
+                throw new Error('Invalid item data: productId, quantity, and unitPrice are required')
+            }
+
             const product = await Product.findByPk(item.productId, { transaction })
             
             if (!product) {
@@ -179,59 +193,78 @@ export const createSale = async (req, res) => {
                 throw new Error(`Insufficient stock for product ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`)
             }
 
-            const itemSubtotal = item.quantity * item.unitPrice
+            const itemDiscount = item.discount || 0
+            const itemDiscountType = item.discountType || 'fixed'
+            let itemSubtotal = item.quantity * parseFloat(item.unitPrice)
+            
+            // Apply item-level discount
+            if (itemDiscount > 0) {
+                if (itemDiscountType === 'percentage') {
+                    itemSubtotal = itemSubtotal * (1 - itemDiscount / 100)
+                } else {
+                    itemSubtotal = itemSubtotal - itemDiscount
+                }
+            }
+            
+            itemSubtotal = Math.max(0, itemSubtotal)
             subtotal += itemSubtotal
 
             validatedItems.push({
                 productId: item.productId,
                 productName: product.name,
                 productSku: product.sku,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                discount: item.discount || 0,
-                discountType: item.discountType || 'fixed'
+                quantity: parseInt(item.quantity),
+                unitPrice: parseFloat(item.unitPrice),
+                discount: parseFloat(itemDiscount),
+                discountType: itemDiscountType,
+                subtotal: itemSubtotal
             })
         }
 
         // Apply sale-level discount
         let discountAmount = 0
-        if (discount > 0) {
+        if (discount && discount > 0) {
             if (discountType === 'percentage') {
-                discountAmount = subtotal * (discount / 100)
+                discountAmount = subtotal * (parseFloat(discount) / 100)
             } else {
-                discountAmount = discount
+                discountAmount = parseFloat(discount)
             }
         }
 
-        const afterDiscount = subtotal - discountAmount
-        const tax = afterDiscount * (taxRate / 100)
+        const afterDiscount = Math.max(0, subtotal - discountAmount)
+        const tax = afterDiscount * (parseFloat(taxRate) / 100)
         const total = afterDiscount + tax
-        const change = amountPaid - total
+        const change = parseFloat(amountPaid) - total
 
         if (change < 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Amount paid is insufficient'
+                message: `Amount paid (${amountPaid}) is insufficient. Total amount: ${total.toFixed(2)}`
             })
         }
 
+        // Generate sale number
+        const saleNumber = generateSaleNumber()
+
         // Create sale
         const sale = await Sale.create({
-            customerId,
-            customerName,
-            customerPhone,
-            customerEmail,
+            saleNumber,
+            customerId: customerId || null,
+            customerName: customerName || null,
+            customerPhone: customerPhone || null,
+            customerEmail: customerEmail || null,
             cashierId,
-            subtotal,
-            discount: discountAmount,
-            discountType,
-            tax,
-            taxRate,
-            total,
-            amountPaid,
-            change,
+            subtotal: parseFloat(subtotal.toFixed(2)),
+            discount: parseFloat(discountAmount.toFixed(2)),
+            discountType: discountType || 'fixed',
+            tax: parseFloat(tax.toFixed(2)),
+            taxRate: parseFloat(taxRate),
+            total: parseFloat(total.toFixed(2)),
+            amountPaid: parseFloat(amountPaid),
+            change: parseFloat(change.toFixed(2)),
             paymentMethod,
-            notes
+            notes: notes || null,
+            status: 'completed'
         }, { transaction })
 
         // Create sale items and update stock
@@ -361,7 +394,7 @@ export const getSalesSummary = async (req, res) => {
                 endOfDay.setHours(23, 59, 59, 999)
                 dateFilter = {
                     saleDate: {
-                        [sequelize.Op.between]: [startOfDay, endOfDay]
+                        [Op.between]: [startOfDay, endOfDay]
                     }
                 }
                 break

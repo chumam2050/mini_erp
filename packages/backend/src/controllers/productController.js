@@ -72,8 +72,6 @@ export const createProduct = async (req, res) => {
             product: product.toJSON()
         })
     } catch (error) {
-        console.error('Create product error:', error)
-        
         if (error.name === 'SequelizeValidationError') {
             return res.status(400).json({
                 error: 'Validation error',
@@ -127,8 +125,6 @@ export const updateProduct = async (req, res) => {
             product: product.toJSON()
         })
     } catch (error) {
-        console.error('Update product error:', error)
-        
         if (error.name === 'SequelizeValidationError') {
             return res.status(400).json({
                 error: 'Validation error',
@@ -173,7 +169,6 @@ export const deleteProduct = async (req, res) => {
             product: deletedProduct
         })
     } catch (error) {
-        console.error('Delete product error:', error)
         res.status(500).json({
             error: 'Failed to delete product',
             message: error.message

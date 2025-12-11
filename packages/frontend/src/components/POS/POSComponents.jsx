@@ -53,12 +53,12 @@ const CheckoutModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4">
+      <div className="bg-card rounded-lg p-6 w-full max-w-md mx-4">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Checkout</h2>
+          <h2 className="text-xl font-bold text-foreground">Checkout</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-muted-foreground hover:text-foreground"
           >
             <X size={20} />
           </button>
@@ -66,13 +66,13 @@ const CheckoutModal = ({
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Payment Method
             </label>
             <select
               value={paymentMethod}
               onChange={(e) => setPaymentMethod(e.target.value)}
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
             >
               <option value="cash">Cash</option>
               <option value="card">Card</option>
@@ -82,16 +82,16 @@ const CheckoutModal = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Total Amount
             </label>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            <div className="text-2xl font-bold text-foreground">
               Rp {total.toLocaleString('id-ID')}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Amount Paid
             </label>
             <input
@@ -100,17 +100,17 @@ const CheckoutModal = ({
               onChange={(e) => setAmountPaid(e.target.value)}
               min={total}
               step="0.01"
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full p-2 border border-border rounded-lg bg-background text-foreground"
               required
             />
           </div>
 
           {amountPaid && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Change
               </label>
-              <div className="text-xl font-semibold text-gray-900 dark:text-white">
+              <div className="text-xl font-semibold text-foreground">
                 Rp {change.toLocaleString('id-ID')}
               </div>
             </div>
@@ -121,7 +121,7 @@ const CheckoutModal = ({
           <button
             type="submit"
             disabled={!amountPaid || parseFloat(amountPaid) < total || isProcessing}
-            className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isProcessing ? 'Processing...' : 'Complete Sale'}
           </button>
@@ -192,19 +192,19 @@ const ProductGrid = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+    <div className="bg-card border border-border rounded-lg p-6">
       {/* Header with Search and Filters */}
       <div className="mb-6 space-y-4">
         {/* Search and View Toggle */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <div className="flex items-center space-x-2">
@@ -212,8 +212,8 @@ const ProductGrid = ({
               onClick={() => onViewModeChange('list')}
               className={`p-2 rounded-lg ${
                 viewMode === 'list'
-                  ? 'bg-black dark:bg-white text-white dark:text-black'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
             >
               <List size={18} />
@@ -222,8 +222,8 @@ const ProductGrid = ({
               onClick={() => onViewModeChange('grid')}
               className={`p-2 rounded-lg ${
                 viewMode === 'grid'
-                  ? 'bg-black dark:bg-white text-white dark:text-black'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
             >
               <Grid3X3 size={18} />
@@ -233,11 +233,11 @@ const ProductGrid = ({
 
         {/* Category Filter */}
         <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-400" />
+          <Filter className="h-4 w-4 text-muted-foreground" />
           <select
             value={category}
             onChange={(e) => onCategoryChange(e.target.value)}
-            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">All Categories</option>
             {categories.map(cat => (
@@ -250,7 +250,7 @@ const ProductGrid = ({
       {/* Products List */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
         <PerfectScrollbar
@@ -263,8 +263,8 @@ const ProductGrid = ({
           {filteredProducts.length === 0 ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <p className="text-gray-500 dark:text-gray-400 mb-2">No products found</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500">
+                <p className="text-muted-foreground mb-2">No products found</p>
+                <p className="text-sm text-muted-foreground/70">
                   Try adjusting your search or category filter
                 </p>
               </div>
@@ -274,7 +274,7 @@ const ProductGrid = ({
         {filteredProducts.map(product => (
           <div
             key={product.id}
-            className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
+            className={`bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${
               viewMode === 'list' ? 'flex items-center space-x-4 p-3' : 'p-4'
             }`}
             onClick={() => onAddToCart(product)}
@@ -283,27 +283,27 @@ const ProductGrid = ({
               <img
                 src={getImageUrl(product.primaryImage)}
                 alt={product.name}
-                className={`object-cover bg-gray-100 dark:bg-gray-700 ${viewMode === 'list' ? 'w-16 h-16 rounded-lg flex-shrink-0' : 'w-full h-32 mb-3'}`}
+                className={`object-cover bg-muted ${viewMode === 'list' ? 'w-16 h-16 rounded-lg flex-shrink-0' : 'w-full h-32 mb-3'}`}
                 onError={(e) => handleImageError(e)}
                 loading="lazy"
               />
             ) : (
-              <div className={`bg-gray-300 dark:bg-gray-600 flex items-center justify-center ${viewMode === 'list' ? 'w-16 h-16 rounded-lg flex-shrink-0' : 'w-full h-32 mb-3'}`}>
-                <span className="text-gray-500 dark:text-gray-400 text-xs">No Image</span>
+              <div className={`bg-muted flex items-center justify-center ${viewMode === 'list' ? 'w-16 h-16 rounded-lg flex-shrink-0' : 'w-full h-32 mb-3'}`}>
+                <span className="text-muted-foreground text-xs">No Image</span>
               </div>
             )}
             <div className={`${viewMode === 'list' ? 'flex-1' : ''}`}>
-              <h3 className="font-medium text-gray-900 dark:text-white mb-1 text-sm line-clamp-2">
+              <h3 className="font-medium text-foreground mb-1 text-sm line-clamp-2">
                 {product.name}
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+              <p className="text-xs text-muted-foreground mb-1">
                 SKU: {product.sku}
               </p>
               <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                <span className="text-sm font-semibold text-foreground">
                   Rp {parseInt(product.price).toLocaleString('id-ID')}
                 </span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">
+                <span className="text-xs text-muted-foreground">
                   Stock: {product.stock}
                 </span>
               </div>
@@ -322,38 +322,38 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => {
   const itemTotal = parseFloat(item.price) * item.quantity;
   
   return (
-    <div className="flex items-start space-x-3 py-3 border-b border-gray-200 dark:border-gray-700">
+    <div className="flex items-start space-x-3 py-3 border-b border-border">
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+        <h4 className="text-sm font-medium text-foreground truncate">
           {item.name}
         </h4>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
+        <p className="text-xs text-muted-foreground">
           Rp {parseInt(item.price).toLocaleString('id-ID')} each
         </p>
-        <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1">
+        <p className="text-sm font-semibold text-foreground mt-1">
           Rp {itemTotal.toLocaleString('id-ID')}
         </p>
       </div>
       <div className="flex items-center space-x-2">
         <button
           onClick={() => onUpdateQuantity(item.id, Math.max(0, item.quantity - 1))}
-          className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          className="p-1 text-muted-foreground hover:text-foreground"
         >
           <Minus size={14} />
         </button>
-        <span className="w-8 text-center text-sm text-gray-900 dark:text-white">
+        <span className="w-8 text-center text-sm text-foreground">
           {item.quantity}
         </span>
         <button
           onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-          className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          className="p-1 text-muted-foreground hover:text-foreground"
         >
           <Plus size={14} />
         </button>
       </div>
       <button
         onClick={() => onRemove(item.id)}
-        className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+        className="p-1 text-destructive hover:text-destructive/80"
       >
         <X size={14} />
       </button>
@@ -383,16 +383,16 @@ const Cart = ({
   const total = afterDiscount + tax;
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 h-fit">
+    <div className="bg-card border border-border rounded-lg p-6 h-fit">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+        <h2 className="text-lg font-semibold text-foreground flex items-center">
           <ShoppingCart size={20} className="mr-2" />
           Cart ({items.length})
         </h2>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-gray-500 dark:text-gray-400 text-center py-8">
+        <p className="text-muted-foreground text-center py-8">
           Your cart is empty
         </p>
       ) : (
@@ -417,28 +417,28 @@ const Cart = ({
           </PerfectScrollbar>
 
           {/* Discount and Tax Controls */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4 space-y-3">
+          <div className="border-t border-border pt-4 mb-4 space-y-3">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   Discount
                 </label>
                 <input
                   type="number"
                   value={discount}
                   onChange={(e) => onDiscountChange?.(Number(e.target.value))}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-2 py-1 text-sm border border-border rounded bg-background text-foreground"
                   min="0"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="block text-xs font-medium text-foreground mb-1">
                   Type
                 </label>
                 <select
                   value={discountType}
                   onChange={(e) => onDiscountTypeChange?.(e.target.value)}
-                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-2 py-1 text-sm border border-border rounded bg-background text-foreground"
                 >
                   <option value="fixed">Fixed</option>
                   <option value="percentage">%</option>
@@ -446,14 +446,14 @@ const Cart = ({
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs font-medium text-foreground mb-1">
                 Tax Rate (%)
               </label>
               <input
                 type="number"
                 value={taxRate}
                 onChange={(e) => onTaxRateChange?.(Number(e.target.value))}
-                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="w-full px-2 py-1 text-sm border border-border rounded bg-background text-foreground"
                 min="0"
                 max="100"
                 step="0.1"
@@ -462,24 +462,24 @@ const Cart = ({
           </div>
 
           {/* Totals Summary */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+          <div className="border-t border-border pt-4 space-y-2">
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
-              <span className="text-gray-900 dark:text-white">Rp {subtotal.toLocaleString('id-ID')}</span>
+              <span className="text-muted-foreground">Subtotal:</span>
+              <span className="text-foreground">Rp {subtotal.toLocaleString('id-ID')}</span>
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600 dark:text-gray-400">Discount:</span>
-                <span className="text-red-600 dark:text-red-400">-Rp {discountAmount.toLocaleString('id-ID')}</span>
+                <span className="text-muted-foreground">Discount:</span>
+                <span className="text-destructive">-Rp {discountAmount.toLocaleString('id-ID')}</span>
               </div>
             )}
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">Tax ({taxRate}%):</span>
-              <span className="text-gray-900 dark:text-white">Rp {tax.toLocaleString('id-ID')}</span>
+              <span className="text-muted-foreground">Tax ({taxRate}%):</span>
+              <span className="text-foreground">Rp {tax.toLocaleString('id-ID')}</span>
             </div>
-            <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
-              <span className="text-lg font-semibold text-gray-900 dark:text-white">Total:</span>
-              <span className="text-xl font-bold text-gray-900 dark:text-white">
+            <div className="flex justify-between items-center pt-2 border-t border-border">
+              <span className="text-lg font-semibold text-foreground">Total:</span>
+              <span className="text-xl font-bold text-foreground">
                 Rp {total.toLocaleString('id-ID')}
               </span>
             </div>
@@ -487,7 +487,7 @@ const Cart = ({
             <button
               onClick={onCheckout}
               disabled={items.length === 0}
-              className="w-full bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-black py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3 px-4 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed mt-4"
             >
               Checkout
             </button>
