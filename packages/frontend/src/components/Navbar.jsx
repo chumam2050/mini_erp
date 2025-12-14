@@ -50,7 +50,7 @@ function Navbar() {
     { name: 'Dashboard', path: '/dashboard', icon: Home },
     { name: 'Products', path: '/products', icon: Package },
     { name: 'Sales', path: '/sales', icon: BarChart3 },
-    // { name: 'POS', path: '/pos', icon: CreditCard },
+    { name: 'POS', path: '/pos', icon: CreditCard },
     { name: 'Users', path: '/users', icon: Users },
   ]
 
