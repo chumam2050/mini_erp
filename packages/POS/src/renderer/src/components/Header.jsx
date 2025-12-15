@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { Settings } from 'lucide-react'
+import { Button } from './ui/button'
 
 function Header({ onSettingsClick }) {
   const [datetime, setDatetime] = useState('')
@@ -26,23 +28,25 @@ function Header({ onSettingsClick }) {
   }, [])
 
   return (
-    <header className="app-header">
-      <div className="header-content">
-        <div className="header-left">
-          <h1 className="app-title">Supermarket Sejahtera | POS #04</h1>
-          <div className="header-info">
-            <span>Kasir: <span id="cashier-name">{cashierName}</span></span>
-            <span id="datetime">{datetime}</span>
-            <span>Status: <span id="status" className="status-online">Online</span></span>
+    <header className="bg-[#343a40] text-white shadow-md">
+      <div className="flex justify-between items-center px-6 py-3">
+        <div className="flex-1">
+          <h1 className="text-lg font-semibold mb-1">Supermarket Sejahtera | POS #04</h1>
+          <div className="flex gap-6 text-sm text-gray-300">
+            <span>Kasir: <span className="text-white">{cashierName}</span></span>
+            <span>{datetime}</span>
+            <span>Status: <span className="text-green-400 font-semibold">Online</span></span>
           </div>
         </div>
-        <div className="header-actions">
-          <button id="settings-btn" className="icon-btn" title="Settings" onClick={onSettingsClick}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="3"></circle>
-              <path d="M12 1v6m0 6v6m-8-8h6m6 0h6"></path>
-            </svg>
-          </button>
+        <div>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={onSettingsClick}
+            className="text-white hover:bg-white/10"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
         </div>
       </div>
     </header>

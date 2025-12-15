@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { Search } from 'lucide-react'
+import { Card } from './ui/card'
+import { Input } from './ui/input'
+import { Button } from './ui/button'
 
 function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barcodeInputRef, formatPrice }) {
   const [barcodeValue, setBarcodeValue] = useState('')
@@ -17,46 +21,54 @@ function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barc
   }
 
   return (
-    <div className="items-panel">
-      <div className="barcode-input-section">
-        <input
+    <Card className="flex flex-col h-full overflow-hidden">
+      <div className="flex gap-3 p-4 border-b bg-white">
+        <Input
           ref={barcodeInputRef}
           type="text"
-          id="barcode-input"
           placeholder="[ Input Barcode Manual... ]"
           value={barcodeValue}
           onChange={(e) => setBarcodeValue(e.target.value)}
           onKeyPress={handleKeyPress}
+          className="flex-1 h-11 font-mono"
           autoFocus
         />
-        <button id="search-btn" className="btn-search" onClick={handleSearch}>
+        <Button 
+          onClick={handleSearch}
+          className="bg-[#17a2b8] hover:bg-[#138496] px-6"
+        >
+          <Search className="h-4 w-4 mr-2" />
           CARI BARANG
-        </button>
+        </Button>
       </div>
 
-      <div className="cart-items" id="cart-items">
+      <div className="flex-1 overflow-y-auto p-2 bg-white">
         {cart.length === 0 ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#6c757d' }}>
+          <div className="flex items-center justify-center h-full text-muted-foreground">
             <p>Belum ada item</p>
           </div>
         ) : (
-          cart.map((item, index) => (
-            <div
-              key={item.id + '_' + index}
-              className={`cart-item ${selectedItemIndex === index ? 'selected' : ''}`}
-              onClick={() => onSelectItem(index)}
-            >
-              <div className="cart-item-number">{index + 1}.</div>
-              <div className="cart-item-info">
-                <div className="cart-item-name">{item.name}</div>
+          <div className="space-y-1">
+            {cart.map((item, index) => (
+              <div
+                key={item.id + '_' + index}
+                onClick={() => onSelectItem(index)}
+                className={`grid grid-cols-[40px_1fr_80px_120px] gap-4 p-3 rounded border cursor-pointer transition-colors ${
+                  selectedItemIndex === index 
+                    ? 'bg-[#007bff] text-white border-[#007bff]' 
+                    : 'bg-white hover:bg-gray-50 border-gray-200'
+                }`}
+              >
+                <div className="font-semibold text-base">{index + 1}.</div>
+                <div className="font-medium">{item.name}</div>
+                <div className="text-center font-semibold">- {item.quantity} -</div>
+                <div className="text-right font-semibold">Rp {formatPrice(item.price * item.quantity)}</div>
               </div>
-              <div className="cart-item-qty">- {item.quantity} -</div>
-              <div className="cart-item-price">Rp {formatPrice(item.price * item.quantity)}</div>
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
-    </div>
+    </Card>
   )
 }
 

@@ -1,4 +1,8 @@
 import { useState } from 'react'
+import { X } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
+import { Input } from './ui/input'
+import { Button } from './ui/button'
 
 function SettingsModal({ config, onSave, onClose }) {
   const [baseUrl, setBaseUrl] = useState(config.baseUrl)
@@ -13,43 +17,56 @@ function SettingsModal({ config, onSave, onClose }) {
   }
 
   return (
-    <div id="settings-modal" className="modal active">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h2>Settings</h2>
-          <button className="modal-close" onClick={onClose}>&times;</button>
-        </div>
-        <div className="modal-body">
-          <div className="form-group">
-            <label htmlFor="api-url">API Base URL</label>
-            <input
-              type="text"
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <Card className="w-full max-w-lg mx-4">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle className="text-xl font-semibold">Settings</CardTitle>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={onClose}
+            className="h-8 w-8"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="api-url" className="text-sm font-semibold">
+              API Base URL
+            </label>
+            <Input
               id="api-url"
+              type="text"
               placeholder="http://localhost:3000"
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
+              className="h-10"
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="api-timeout">API Timeout (ms)</label>
-            <input
-              type="number"
+          <div className="space-y-2">
+            <label htmlFor="api-timeout" className="text-sm font-semibold">
+              API Timeout (ms)
+            </label>
+            <Input
               id="api-timeout"
+              type="number"
               placeholder="5000"
               value={timeout}
               onChange={(e) => setTimeout(e.target.value)}
+              className="h-10"
             />
           </div>
-        </div>
-        <div className="modal-footer">
-          <button id="save-settings" className="btn-primary" onClick={handleSave}>
-            Save Settings
-          </button>
-          <button id="cancel-settings" className="btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
-        </div>
-      </div>
+          <div className="flex gap-3 pt-4">
+            <Button onClick={handleSave} className="flex-1">
+              Save Settings
+            </Button>
+            <Button onClick={onClose} variant="outline" className="flex-1">
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

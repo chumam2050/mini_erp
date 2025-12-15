@@ -222,11 +222,11 @@ function App() {
   }
 
   return (
-    <div id="app">
+    <div className="flex flex-col h-screen">
       <Header onSettingsClick={() => setShowSettings(true)} />
       
-      <main className="main-content">
-        <div className="pos-container">
+      <main className="flex-1 overflow-hidden bg-[#2d3436]">
+        <div className="grid grid-cols-[1.5fr_1fr] h-full gap-3 p-3">
           <CartItems
             cart={cart}
             selectedItemIndex={selectedItemIndex}
@@ -236,7 +236,7 @@ function App() {
             formatPrice={formatPrice}
           />
           
-          <div className="actions-panel">
+          <div className="flex flex-col gap-3">
             <ActionButtons
               onChangeQty={changeQuantity}
               onClearAll={clearAllItems}
