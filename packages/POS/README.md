@@ -1,19 +1,28 @@
-# Mini ERP - Point of Sales (Electron)
+# Mini ERP - Point of Sales (Electron + React + Vite)
 
-Desktop Point of Sales application built with Electron.
+Desktop Point of Sales application built with Electron, React, and Vite using electron-vite.
 
 ## Features
 
-- 🛒 Product catalog with search
-- 🛍️ Shopping cart management
-- 💰 Sales checkout with tax calculation
-- 📊 Sales history tracking
+- 🛒 Barcode scanner support (manual input)
+- 🛍️ Shopping cart management with item selection
+- 💰 Multiple payment methods (Cash, Card, E-Wallet)
+- 📊 Sales history tracking with persistent storage
 - ⚙️ Configurable API settings
-- 💾 Persistent data storage
+- 💾 Persistent data storage with electron-store
+- ⚡ Hot Module Replacement (HMR) for fast development
+- 🎨 Modern React-based UI with reusable components
+
+## Technology Stack
+
+- **Electron** ^28.0.0 - Cross-platform desktop framework
+- **React** ^18.2.0 - UI library for component-based development
+- **Vite** ^5.0.0 - Lightning-fast build tool
+- **electron-vite** ^2.0.0 - Vite integration for Electron with HMR
 
 ## Prerequisites
 
-- Node.js (v16 or higher)
+- Node.js (v20.19+ or v22.12+)
 - npm or yarn
 
 ## Installation
@@ -25,24 +34,31 @@ npm install
 
 ## Development
 
-Run the application in development mode:
+Run the application in development mode with Hot Module Replacement:
 
 ```bash
 npm run dev
 ```
 
-Or using the standard start command:
+This will:
+- Start Vite dev server for the renderer process
+- Launch Electron with the app
+- Enable hot reloading for instant feedback
+
+### Preview Production Build
+
+Test the production build before packaging:
 
 ```bash
 npm start
 ```
 
-## Building
+## Building for Production
 
-Build the application for your platform:
+Build the application for distribution:
 
 ```bash
-# Build for current platform
+# Build source code and create distributable
 npm run build
 
 # Build for Windows
@@ -53,9 +69,6 @@ npm run build:mac
 
 # Build for Linux
 npm run build:linux
-
-# Package without creating installers
-npm run pack
 ```
 
 The built application will be available in the `dist/` directory.
@@ -65,15 +78,22 @@ The built application will be available in the `dist/` directory.
 ```
 packages/POS/
 ├── src/
-│   ├── main.js           # Main Electron process
-│   ├── preload.js        # Preload script for IPC
-│   └── renderer/         # Renderer process (UI)
-│       ├── index.html    # Main HTML file
-│       ├── styles.css    # Application styles
-│       └── renderer.js   # Frontend JavaScript
-├── assets/               # Application icons
-├── package.json          # Project configuration
-└── README.md            # This file
+│   ├── main/
+│   │   └── index.js          # Main Electron process
+│   ├── preload/
+│   │   └── index.js          # Preload script (IPC bridge)
+│   └── renderer/
+│       └── src/
+│           ├── main.jsx      # React entry point
+│           ├── App.jsx       # Main App component
+│           ├── index.css     # Global styles
+│           ├── components/   # React components
+│           └── index.html
+├── electron.vite.config.js   # Vite configuration
+├── assets/                   # Application icons
+├── package.json             # Project configuration
+├── README.md                # This file
+└── MIGRATION.md             # Migration guide
 ```
 
 ## Configuration

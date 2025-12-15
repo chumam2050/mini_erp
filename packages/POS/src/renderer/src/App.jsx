@@ -1,0 +1,266 @@
+import { useState, useEffect, useRef } from 'react'
+import Header from './components/Header'
+import CartItems from './components/CartItems'
+import ActionButtons from './components/ActionButtons'
+import Summary from './components/Summary'
+import SettingsModal from './components/SettingsModal'
+
+const mockProducts = [
+  { id: 1, barcode: '8991234567890', name: 'Minyak Goreng 2L', price: 35000, stock: 50 },
+  { id: 2, barcode: '8991234567891', name: 'Telur Ayam (kg)', price: 28000, stock: 30, perKg: true },
+  { id: 3, barcode: '8991234567892', name: 'Sabun Mandi Cair', price: 30000, stock: 100 },
+  { id: 4, barcode: '8991234567893', name: 'Roti Tawar Kupas', price: 18500, stock: 25 },
+  { id: 5, barcode: '8991234567894', name: 'Susu UHT 1L', price: 22000, stock: 40 },
+  { id: 6, barcode: '8991234567895', name: 'Gula Pasir 1kg', price: 15000, stock: 60 }
+]
+
+function App() {
+  const [cart, setCart] = useState([])
+  const [products] = useState(mockProducts)
+  const [selectedItemIndex, setSelectedItemIndex] = useState(null)
+  const [showSettings, setShowSettings] = useState(false)
+  const [apiConfig, setApiConfig] = useState({ baseUrl: 'http://localhost:3000', timeout: 5000 })
+  const barcodeInputRef = useRef(null)
+
+  // Load saved cart and config on mount
+  useEffect(() => {
+    const loadData = async () => {
+      const savedCart = await window.electronAPI.storeGet('currentCart')
+      if (savedCart) setCart(savedCart)
+      
+      const config = await window.electronAPI.getApiConfig()
+      if (config) setApiConfig(config)
+    }
+    loadData()
+
+    // Menu event listeners
+    window.electronAPI.onMenuNewSale(() => {
+      clearCart()
+    })
+
+    window.electronAPI.onMenuAbout(() => {
+      alert('Mini ERP - Point of Sales\nSupermarket Sejahtera\n\nA desktop POS application built with Electron')
+    })
+
+    // Focus barcode input
+    barcodeInputRef.current?.focus()
+  }, [])
+
+  // Save cart whenever it changes
+  useEffect(() => {
+    window.electronAPI.storeSet('currentCart', cart)
+  }, [cart])
+
+  const handleBarcodeInput = (barcode) => {
+    if (!barcode) return
+
+    const product = products.find(p => p.barcode === barcode)
+    
+    if (product) {
+      addToCart(product.id)
+      return true
+    } else {
+      alert('Produk tidak ditemukan!')
+      return false
+    }
+  }
+
+  const addToCart = (productId) => {
+    const product = products.find(p => p.id === productId)
+    if (!product) return
+
+    if (product.perKg) {
+      const weight = prompt(`Masukkan berat ${product.name} (kg):`, '0.5')
+      if (!weight || isNaN(weight) || parseFloat(weight) <= 0) return
+
+      setCart(prev => [...prev, {
+        id: Date.now(),
+        name: `${product.name} (${weight} kg)`,
+        price: product.price * parseFloat(weight),
+        quantity: 1,
+        maxStock: 1
+      }])
+    } else {
+      setCart(prev => {
+        const existingIndex = prev.findIndex(item => item.id === productId)
+        
+        if (existingIndex >= 0) {
+          const updated = [...prev]
+          if (updated[existingIndex].quantity < product.stock) {
+            updated[existingIndex].quantity++
+          } else {
+            alert('Stok tidak mencukupi!')
+            return prev
+          }
+          return updated
+        } else {
+          return [...prev, {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity: 1,
+            maxStock: product.stock
+          }]
+        }
+      })
+    }
+  }
+
+  const changeQuantity = () => {
+    if (selectedItemIndex === null) {
+      alert('Pilih item terlebih dahulu!')
+      return
+    }
+
+    const item = cart[selectedItemIndex]
+    const newQty = prompt(`Ubah jumlah untuk ${item.name}:`, item.quantity)
+
+    if (newQty && !isNaN(newQty) && parseInt(newQty) > 0) {
+      setCart(prev => {
+        const updated = [...prev]
+        updated[selectedItemIndex].quantity = parseInt(newQty)
+        return updated
+      })
+    }
+  }
+
+  const clearAllItems = () => {
+    if (cart.length === 0) {
+      alert('Keranjang sudah kosong!')
+      return
+    }
+
+    if (confirm('Hapus semua item dari keranjang?')) {
+      setCart([])
+      setSelectedItemIndex(null)
+      barcodeInputRef.current?.focus()
+    }
+  }
+
+  const clearCart = () => {
+    setCart([])
+    setSelectedItemIndex(null)
+    barcodeInputRef.current?.focus()
+  }
+
+  const inputMember = () => {
+    const memberId = prompt('Masukkan ID Member:')
+    if (memberId) {
+      alert(`Member ${memberId} berhasil ditambahkan!`)
+      // TODO: Apply member discount
+    }
+  }
+
+  const checkout = async (paymentMethod) => {
+    if (cart.length === 0) {
+      alert('Keranjang kosong!')
+      return
+    }
+
+    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const tax = subtotal * 0.11
+    const total = Math.round(subtotal + tax)
+
+    let paymentMethodName = ''
+    switch(paymentMethod) {
+      case 'cash':
+        paymentMethodName = 'Tunai (Cash)'
+        break
+      case 'card':
+        paymentMethodName = 'Kartu (EDC)'
+        break
+      case 'ewallet':
+        paymentMethodName = 'QRIS / E-Wallet'
+        break
+    }
+
+    if (paymentMethod === 'cash') {
+      const cashAmount = prompt(`Total: Rp ${formatPrice(total)}\n\nMasukkan jumlah uang tunai:`)
+      if (!cashAmount || isNaN(cashAmount) || parseInt(cashAmount) < total) {
+        alert('Jumlah uang tidak mencukupi!')
+        return
+      }
+
+      const change = parseInt(cashAmount) - total
+      alert(`Pembayaran berhasil!\n\nTotal: Rp ${formatPrice(total)}\nBayar: Rp ${formatPrice(parseInt(cashAmount))}\nKembalian: Rp ${formatPrice(change)}`)
+    } else {
+      if (!confirm(`Proses pembayaran dengan ${paymentMethodName}?\n\nTotal: Rp ${formatPrice(total)}`)) {
+        return
+      }
+      alert('Pembayaran berhasil!')
+    }
+
+    try {
+      const salesHistory = await window.electronAPI.storeGet('salesHistory') || []
+      salesHistory.push({
+        id: Date.now(),
+        items: cart,
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
+        paymentMethod: paymentMethodName,
+        cashier: 'Budi Santoso',
+        timestamp: new Date().toISOString()
+      })
+      await window.electronAPI.storeSet('salesHistory', salesHistory)
+
+      clearCart()
+    } catch (error) {
+      alert('Error processing sale: ' + error.message)
+    }
+  }
+
+  const formatPrice = (price) => {
+    return price.toLocaleString('id-ID')
+  }
+
+  const saveSettings = async (config) => {
+    await window.electronAPI.setApiConfig(config)
+    setApiConfig(config)
+    setShowSettings(false)
+    alert('Settings saved successfully!')
+  }
+
+  return (
+    <div id="app">
+      <Header onSettingsClick={() => setShowSettings(true)} />
+      
+      <main className="main-content">
+        <div className="pos-container">
+          <CartItems
+            cart={cart}
+            selectedItemIndex={selectedItemIndex}
+            onSelectItem={setSelectedItemIndex}
+            onBarcodeInput={handleBarcodeInput}
+            barcodeInputRef={barcodeInputRef}
+            formatPrice={formatPrice}
+          />
+          
+          <div className="actions-panel">
+            <ActionButtons
+              onChangeQty={changeQuantity}
+              onClearAll={clearAllItems}
+              onInputMember={inputMember}
+            />
+            
+            <Summary
+              cart={cart}
+              formatPrice={formatPrice}
+              onCheckout={checkout}
+            />
+          </div>
+        </div>
+      </main>
+
+      {showSettings && (
+        <SettingsModal
+          config={apiConfig}
+          onSave={saveSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+export default App
