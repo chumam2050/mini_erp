@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+  <title>Mini ERP - Point of Sales</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-content">
+        <div class="header-left">
+          <h1 class="app-title">Supermarket Sejahtera | POS #04</h1>
+          <div class="header-info">
+            <span>Kasir: <span id="cashier-name">-</span></span>
+            <span id="datetime">-</span>
+            <span>Status: <span id="status" class="status-online">Online</span></span>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button id="settings-btn" class="icon-btn" title="Settings">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 1v6m0 6v6m-8-8h6m6 0h6"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="pos-container">
+        <!-- Left Panel - Cart Items -->
+        <div class="items-panel">
+          <div class="barcode-input-section">
+            <input type="text" id="barcode-input" placeholder="[ Input Barcode Manual... ]" autofocus>
+            <button id="search-btn" class="btn-search">CARI BARANG</button>
+          </div>
+          
+          <div class="cart-items" id="cart-items">
+            <!-- Cart items will be rendered here -->
+          </div>
+        </div>
+
+        <!-- Right Panel - Actions & Summary -->
+        <div class="actions-panel">
+          <!-- Action Buttons Grid -->
+          <div class="action-buttons-grid">
+            <button class="action-btn" id="btn-ubah-qty">UBAH QTY<br>(+/-)</button>
+            <button class="action-btn" id="btn-input-member">INPUT<br>MEMBER</button>
+            <button class="action-btn btn-danger" id="btn-clear-all">CLEAR ALL<br>(Hapus Semua)</button>
+          </div>
+
+          <!-- Summary Section -->
+          <div class="summary-section">
+            <div class="summary-info">
+              <div class="summary-row">
+                <span>Total Item:</span>
+                <span id="total-items" class="summary-value">0</span>
+              </div>
+              <div class="summary-row">
+                <span>Subtotal:</span>
+                <span id="subtotal" class="summary-value">Rp 0</span>
+              </div>
+              <div class="summary-row">
+                <span>PPN (11%):</span>
+                <span id="tax" class="summary-value">Rp 0</span>
+              </div>
+              <div class="summary-row">
+                <span>Diskon:</span>
+                <span id="discount" class="summary-value">- Rp 0</span>
+              </div>
+              <div class="summary-row total">
+                <span>TOTAL:</span>
+                <span id="total" class="summary-value">Rp 0</span>
+              </div>
+            </div>
+
+            <!-- Payment Buttons -->
+            <div class="payment-buttons">
+              <button id="btn-cash" class="btn-payment btn-cash">TUNAI<br>(CASH)</button>
+              <button id="btn-card" class="btn-payment btn-card">KARTU<br>(EDC)</button>
+              <button id="btn-ewallet" class="btn-payment btn-ewallet">QRIS /<br>E-Wallet</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Settings</h2>
+          <button class="modal-close" id="close-settings">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="api-url">API Base URL</label>
+            <input type="text" id="api-url" placeholder="http://localhost:3000">
+          </div>
+          <div class="form-group">
+            <label for="api-timeout">API Timeout (ms)</label>
+            <input type="number" id="api-timeout" placeholder="5000">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="save-settings" class="btn-primary">Save Settings</button>
+          <button id="cancel-settings" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

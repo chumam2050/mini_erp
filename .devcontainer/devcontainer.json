@@ -1,6 +1,6 @@
 {
 	"name": "Mini ERP Dev Container",
-	"dockerComposeFile": "docker-compose.yml",
+	"dockerComposeFile": "./docker-compose.yml",
 	"service": "minierp",
 	"workspaceFolder": "/workspace",
 	"forwardPorts": [
