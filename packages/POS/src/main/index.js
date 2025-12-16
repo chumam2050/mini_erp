@@ -154,7 +154,7 @@ ipcMain.handle('get-app-version', () => {
 // Handle API configuration
 ipcMain.handle('get-api-config', () => {
   return store.get('apiConfig', {
-    baseUrl: 'http://localhost:3000',
+    baseUrl: 'http://localhost:5000',
     timeout: 5000
   })
 })

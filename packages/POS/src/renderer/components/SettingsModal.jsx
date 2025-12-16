@@ -39,7 +39,7 @@ function SettingsModal({ config, onSave, onClose }) {
             <Input
               id="api-url"
               type="text"
-              placeholder="http://localhost:3000"
+              placeholder="http://localhost:5000"
               value={baseUrl}
               onChange={(e) => setBaseUrl(e.target.value)}
               className="h-11 bg-input border-border/50 focus:border-primary"

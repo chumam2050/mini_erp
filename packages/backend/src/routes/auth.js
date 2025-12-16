@@ -3,6 +3,7 @@ import { authenticateToken } from '../middleware/auth.js'
 import {
     register,
     login,
+    logout,
     getProfile,
     updateProfile,
     changePassword
@@ -65,6 +66,34 @@ router.post('/register', register)
  *               $ref: '#/components/schemas/Error'
  */
 router.post('/login', login)
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout berhasil
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Logout successful
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/logout', authenticateToken, logout)
 
 /**
  * @swagger

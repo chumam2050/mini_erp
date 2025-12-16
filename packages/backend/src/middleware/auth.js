@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken'
 import User from '../models/User.js'
+import AuthToken from '../models/AuthToken.js'
+import { Op } from 'sequelize'
 
 export const authenticateToken = async (req, res, next) => {
     try {
@@ -16,6 +18,23 @@ export const authenticateToken = async (req, res, next) => {
 
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
+        
+        // Check if token exists in database and not expired
+        const authToken = await AuthToken.findOne({
+            where: {
+                token,
+                expiresAt: {
+                    [Op.gt]: new Date()
+                }
+            }
+        })
+
+        if (!authToken) {
+            return res.status(401).json({
+                error: 'Access denied',
+                message: 'Token is invalid or has been revoked'
+            })
+        }
         
         // Get user from database
         const user = await User.findByPk(decoded.id)

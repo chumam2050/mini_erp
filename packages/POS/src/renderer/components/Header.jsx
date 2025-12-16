@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Settings } from 'lucide-react'
+import { Settings, LogOut, User } from 'lucide-react'
 import { Button } from './ui/button'
 import ThemeToggle from './ThemeToggle'
 
-function Header({ onSettingsClick }) {
+function Header({ onSettingsClick, currentUser, onLogout }) {
   const [datetime, setDatetime] = useState('')
-  const [cashierName] = useState('Budi Santoso')
 
   useEffect(() => {
     const updateDateTime = () => {
@@ -34,9 +33,17 @@ function Header({ onSettingsClick }) {
         <div className="flex-1">
           <h1 className="text-lg font-semibold mb-1.5 text-foreground">Supermarket Sejahtera | POS #04</h1>
           <div className="flex gap-6 text-sm text-muted-foreground">
-            <span>Kasir: <span className="text-foreground font-medium">{cashierName}</span></span>
+            <span className="flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5" />
+              Kasir: <span className="text-foreground font-medium">{currentUser?.name || 'Unknown'}</span>
+              {currentUser?.role && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                  {currentUser.role}
+                </span>
+              )}
+            </span>
             <span>{datetime}</span>
-            <span>Status: <span className="text-foreground font-semibold">Online</span></span>
+            <span>Status: <span className="text-green-600 dark:text-green-400 font-semibold">Online</span></span>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -46,8 +53,19 @@ function Header({ onSettingsClick }) {
             size="icon"
             onClick={onSettingsClick}
             className="h-9 w-9 hover:bg-accent"
+            title="Settings"
           >
             <Settings className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={onLogout}
+            className="h-9 px-3 hover:bg-destructive/10 hover:text-destructive"
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4 mr-1.5" />
+            Logout
           </Button>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { Op } from 'sequelize'
 import User from '../models/User.js'
+import AuthToken from '../models/AuthToken.js'
 
 /**
  * Generate JWT token
@@ -15,6 +16,17 @@ const generateToken = (user) => {
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     )
+}
+
+/**
+ * Get token expiration date
+ */
+const getTokenExpirationDate = () => {
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d'
+    const days = parseInt(expiresIn.replace('d', ''))
+    const expirationDate = new Date()
+    expirationDate.setDate(expirationDate.getDate() + days)
+    return expirationDate
 }
 
 /**
@@ -116,6 +128,15 @@ export const login = async (req, res) => {
 
         // Generate token
         const token = generateToken(user)
+
+        // Save token to database
+        await AuthToken.create({
+            userId: user.id,
+            token: token,
+            expiresAt: getTokenExpirationDate(),
+            userAgent: req.headers['user-agent'],
+            ipAddress: req.ip || req.connection.remoteAddress
+        })
 
         res.json({
             message: 'Login successful',
@@ -241,6 +262,32 @@ export const changePassword = async (req, res) => {
 
         res.status(500).json({
             error: 'Failed to change password',
+            message: error.message
+        })
+    }
+}
+
+/**
+ * Logout user
+ */
+export const logout = async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1]
+        
+        if (token) {
+            // Delete token from database
+            await AuthToken.destroy({
+                where: { token }
+            })
+        }
+        
+        res.json({
+            message: 'Logout successful'
+        })
+    } catch (error) {
+        console.error('Logout error:', error)
+        res.status(500).json({
+            error: 'Logout failed',
             message: error.message
         })
     }

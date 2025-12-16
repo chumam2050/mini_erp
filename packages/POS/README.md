@@ -104,7 +104,7 @@ The application stores configuration in the user's app data directory using `ele
 
 You can configure the backend API connection through the Settings menu (gear icon):
 
-- **API Base URL**: The URL of your backend server (default: `http://localhost:3000`)
+- **API Base URL**: The URL of your backend server (default: `http://localhost:5000`)
 - **API Timeout**: Request timeout in milliseconds (default: `5000`)
 
 ## Integration with Backend

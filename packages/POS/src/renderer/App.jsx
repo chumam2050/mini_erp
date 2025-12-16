@@ -5,6 +5,8 @@ import ProductList from './components/ProductList'
 import ActionButtons from './components/ActionButtons'
 import Summary from './components/Summary'
 import SettingsModal from './components/SettingsModal'
+import LoginPage from './pages/LoginPage'
+import { isAuthenticated, getCurrentUser, logout } from './utils/auth'
 
 const mockProducts = [
   { id: 1, barcode: '8991234567890', name: 'Minyak Goreng 2L', price: 35000, stock: 50 },
@@ -20,12 +22,37 @@ function App() {
   const [products] = useState(mockProducts)
   const [selectedItemIndex, setSelectedItemIndex] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
-  const [apiConfig, setApiConfig] = useState({ baseUrl: 'http://localhost:3000', timeout: 5000 })
+  const [apiConfig, setApiConfig] = useState({ baseUrl: 'http://localhost:5000', timeout: 5000 })
   const [isProductListCollapsed, setIsProductListCollapsed] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const barcodeInputRef = useRef(null)
+
+  // Check authentication on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const authenticated = await isAuthenticated()
+        setIsLoggedIn(authenticated)
+        
+        if (authenticated) {
+          const user = await getCurrentUser()
+          setCurrentUser(user)
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+      } finally {
+        setIsCheckingAuth(false)
+      }
+    }
+    checkAuth()
+  }, [])
 
   // Load saved cart and config on mount
   useEffect(() => {
+    if (!isLoggedIn) return
+
     const loadData = async () => {
       const savedCart = await window.electronAPI.storeGet('currentCart')
       if (savedCart) setCart(savedCart)
@@ -201,7 +228,7 @@ function App() {
         tax: tax,
         total: total,
         paymentMethod: paymentMethodName,
-        cashier: 'Budi Santoso',
+        cashier: currentUser?.name || 'Unknown',
         timestamp: new Date().toISOString()
       })
       await window.electronAPI.storeSet('salesHistory', salesHistory)
@@ -223,9 +250,44 @@ function App() {
     alert('Settings saved successfully!')
   }
 
+  const handleLoginSuccess = (user, token) => {
+    setCurrentUser(user)
+    setIsLoggedIn(true)
+  }
+
+  const handleLogout = async () => {
+    if (confirm('Anda yakin ingin logout?')) {
+      await logout()
+      setIsLoggedIn(false)
+      setCurrentUser(null)
+      clearCart()
+    }
+  }
+
+  // Show loading state while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground">Memuat...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show login page if not authenticated
+  if (!isLoggedIn) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />
+  }
+
   return (
     <div className="flex flex-col h-screen bg-background text-foreground">
-      <Header onSettingsClick={() => setShowSettings(true)} />
+      <Header 
+        onSettingsClick={() => setShowSettings(true)}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+      />
       
       <main className="flex-1 overflow-hidden bg-background">
         <div className={`grid h-full gap-3 p-3 transition-all duration-300 ${

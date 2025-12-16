@@ -1,8 +1,9 @@
-import { describe, test, expect, beforeAll, afterAll } from '@jest/globals'
+import { describe, test, expect, beforeAll, afterAll, beforeEach } from '@jest/globals'
 import request from 'supertest'
 import app from '../src/server.js'
 import sequelize from '../src/config/database.js'
 import User from '../src/models/User.js'
+import AuthToken from '../src/models/AuthToken.js'
 
 describe('Authentication API', () => {
     let authToken = ''
@@ -24,6 +25,11 @@ describe('Authentication API', () => {
 
     afterAll(async () => {
         await sequelize.close()
+    })
+
+    beforeEach(async () => {
+        // Clear auth tokens before each test
+        await AuthToken.destroy({ where: {} })
     })
 
     describe('POST /api/auth/register', () => {
@@ -275,6 +281,164 @@ describe('Authentication API', () => {
                 })
 
             expect(response.status).toBe(400)
+        })
+    })
+
+    describe('POST /api/auth/logout', () => {
+        let logoutToken = ''
+
+        beforeEach(async () => {
+            // Login untuk mendapatkan token baru untuk logout test
+            const loginResponse = await request(app)
+                .post('/api/auth/login')
+                .send({
+                    email: 'admin@test.com',
+                    password: 'password123'
+                })
+            logoutToken = loginResponse.body.token
+        })
+
+        test('should logout successfully with valid token', async () => {
+            const response = await request(app)
+                .post('/api/auth/logout')
+                .set('Authorization', `Bearer ${logoutToken}`)
+
+            expect(response.status).toBe(200)
+            expect(response.body).toHaveProperty('message', 'Logout successful')
+        })
+
+        test('should invalidate token after logout', async () => {
+            // Logout
+            await request(app)
+                .post('/api/auth/logout')
+                .set('Authorization', `Bearer ${logoutToken}`)
+
+            // Try to use the same token after logout
+            const response = await request(app)
+                .get('/api/auth/me')
+                .set('Authorization', `Bearer ${logoutToken}`)
+
+            expect(response.status).toBe(401)
+            expect(response.body).toHaveProperty('error')
+        })
+
+        test('should fail logout without token', async () => {
+            const response = await request(app)
+                .post('/api/auth/logout')
+
+            expect(response.status).toBe(401)
+            expect(response.body).toHaveProperty('error')
+        })
+
+        test('should fail logout with invalid token', async () => {
+            const response = await request(app)
+                .post('/api/auth/logout')
+                .set('Authorization', 'Bearer invalid-token-here')
+
+            expect(response.status).toBe(403)
+            expect(response.body).toHaveProperty('error')
+        })
+    })
+
+    describe('Token Management', () => {
+        test('should save token to database on login', async () => {
+            const response = await request(app)
+                .post('/api/auth/login')
+                .send({
+                    email: 'admin@test.com',
+                    password: 'password123'
+                })
+
+            expect(response.status).toBe(200)
+            const token = response.body.token
+
+            // Check if token exists in database
+            const savedToken = await AuthToken.findOne({ where: { token } })
+            expect(savedToken).not.toBeNull()
+            expect(savedToken.userId).toBe(testUserId)
+            expect(savedToken.expiresAt).toBeInstanceOf(Date)
+        })
+
+        test('should remove token from database on logout', async () => {
+            // Login first
+            const loginResponse = await request(app)
+                .post('/api/auth/login')
+                .send({
+                    email: 'admin@test.com',
+                    password: 'password123'
+                })
+            const token = loginResponse.body.token
+
+            // Verify token exists
+            let savedToken = await AuthToken.findOne({ where: { token } })
+            expect(savedToken).not.toBeNull()
+
+            // Logout
+            await request(app)
+                .post('/api/auth/logout')
+                .set('Authorization', `Bearer ${token}`)
+
+            // Verify token is removed
+            savedToken = await AuthToken.findOne({ where: { token } })
+            expect(savedToken).toBeNull()
+        })
+
+        test('should support multiple active sessions', async () => {
+            // Login from first device
+            const login1 = await request(app)
+                .post('/api/auth/login')
+                .send({
+                    email: 'admin@test.com',
+                    password: 'password123'
+                })
+
+            // Login from second device
+            const login2 = await request(app)
+                .post('/api/auth/login')
+                .send({
+                    email: 'admin@test.com',
+                    password: 'password123'
+                })
+
+            // Both tokens should be valid
+            const response1 = await request(app)
+                .get('/api/auth/me')
+                .set('Authorization', `Bearer ${login1.body.token}`)
+            expect(response1.status).toBe(200)
+
+            const response2 = await request(app)
+                .get('/api/auth/me')
+                .set('Authorization', `Bearer ${login2.body.token}`)
+            expect(response2.status).toBe(200)
+
+            // Check database has both tokens
+            const tokens = await AuthToken.findAll({ where: { userId: testUserId } })
+            expect(tokens.length).toBeGreaterThanOrEqual(2)
+        })
+
+        test('should not authenticate with expired token', async () => {
+            // Login first
+            const loginResponse = await request(app)
+                .post('/api/auth/login')
+                .send({
+                    email: 'admin@test.com',
+                    password: 'password123'
+                })
+            const token = loginResponse.body.token
+
+            // Manually expire the token in database
+            await AuthToken.update(
+                { expiresAt: new Date(Date.now() - 1000) },
+                { where: { token } }
+            )
+
+            // Try to use expired token
+            const response = await request(app)
+                .get('/api/auth/me')
+                .set('Authorization', `Bearer ${token}`)
+
+            expect(response.status).toBe(401)
+            expect(response.body.message).toContain('invalid or has been revoked')
         })
     })
 })
