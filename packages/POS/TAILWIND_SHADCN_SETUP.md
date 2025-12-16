@@ -172,7 +172,7 @@ src/renderer/src/
 3. **Paste ke** `src/renderer/src/components/ui/[component].jsx`
 4. **Sesuaikan import path** untuk `cn` utility:
    ```jsx
-   import { cn } from "../lib/utils"
+   import { cn } from "../../lib/utils"
    ```
 5. **Install dependencies** jika ada (biasanya sudah ter-install)
 
@@ -181,7 +181,7 @@ src/renderer/src/
 ```jsx
 // src/renderer/src/components/ui/dialog.jsx
 import * as React from "react"
-import { cn } from "../lib/utils"
+import { cn } from "../../lib/utils"
 
 const Dialog = ({ children, open, onOpenChange }) => {
   if (!open) return null

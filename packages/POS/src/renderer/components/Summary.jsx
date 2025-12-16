@@ -10,7 +10,7 @@ function Summary({ cart, formatPrice, onCheckout }) {
 
   return (
     <Card className="flex flex-col h-full overflow-hidden">
-      <CardContent className="flex-1 p-5 space-y-3">
+      <CardContent className="flex-1 p-6 space-y-4">
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Total Item:</span>
           <span className="font-semibold">{cart.length}</span>
@@ -27,36 +27,36 @@ function Summary({ cart, formatPrice, onCheckout }) {
           <span className="text-muted-foreground">Diskon:</span>
           <span className="font-semibold">- Rp {formatPrice(discount)}</span>
         </div>
-        <div className="flex justify-between text-2xl font-bold text-destructive pt-3 mt-2 border-t-2">
+        <div className="flex justify-between text-2xl font-bold text-destructive pt-4 mt-2 border-t-2 border-border">
           <span>TOTAL:</span>
           <span>Rp {formatPrice(total)}</span>
         </div>
       </CardContent>
 
-      <div className="grid grid-cols-3 border-t-2">
+      <div className="grid grid-cols-3 border-t-2 border-border">
         <Button 
           onClick={() => onCheckout('cash')}
-          className="h-20 rounded-none bg-[#28a745] hover:bg-[#218838] flex-col gap-1 text-base font-bold"
+          className="h-24 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground flex-col gap-2 text-base font-bold border-r border-border"
         >
-          <Wallet className="h-6 w-6" />
+          <Wallet className="h-7 w-7" />
           <div className="text-center leading-tight">
             TUNAI<br />(CASH)
           </div>
         </Button>
         <Button 
           onClick={() => onCheckout('card')}
-          className="h-20 rounded-none bg-[#0066cc] hover:bg-[#0052a3] flex-col gap-1 text-base font-bold"
+          className="h-24 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground flex-col gap-2 text-base font-bold border-r border-border"
         >
-          <CreditCard className="h-6 w-6" />
+          <CreditCard className="h-7 w-7" />
           <div className="text-center leading-tight">
             KARTU<br />(EDC)
           </div>
         </Button>
         <Button 
           onClick={() => onCheckout('ewallet')}
-          className="h-20 rounded-none bg-[#ffc107] hover:bg-[#e0a800] text-gray-900 flex-col gap-1 text-base font-bold"
+          className="h-24 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground flex-col gap-2 text-base font-bold"
         >
-          <Smartphone className="h-6 w-6" />
+          <Smartphone className="h-7 w-7" />
           <div className="text-center leading-tight">
             QRIS /<br />E-Wallet
           </div>

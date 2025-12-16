@@ -23,7 +23,10 @@
         "seed:backend": "lerna run seed --scope=@minierp/backend"
     },
     "devDependencies": {
-        "lerna": "^8.0.0"
+        "autoprefixer": "^10.4.23",
+        "lerna": "^8.0.0",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^3.4.19"
     },
     "workspaces": [
         "packages/*"

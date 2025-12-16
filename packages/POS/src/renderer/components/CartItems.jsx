@@ -22,7 +22,7 @@ function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barc
 
   return (
     <Card className="flex flex-col h-full overflow-hidden">
-      <div className="flex gap-3 p-4 border-b bg-white">
+      <div className="flex gap-3 p-5 border-b">
         <Input
           ref={barcodeInputRef}
           type="text"
@@ -30,39 +30,39 @@ function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barc
           value={barcodeValue}
           onChange={(e) => setBarcodeValue(e.target.value)}
           onKeyPress={handleKeyPress}
-          className="flex-1 h-11 font-mono"
+          className="flex-1 h-12 font-mono text-base"
           autoFocus
         />
         <Button 
           onClick={handleSearch}
-          className="bg-[#17a2b8] hover:bg-[#138496] px-6"
+          className="px-8 h-12 text-base font-semibold"
         >
-          <Search className="h-4 w-4 mr-2" />
+          <Search className="h-5 w-5 mr-2" />
           CARI BARANG
         </Button>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2 bg-white">
+      <div className="flex-1 overflow-y-auto p-3">
         {cart.length === 0 ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">
-            <p>Belum ada item</p>
+            <p className="text-base">Belum ada item</p>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-2">
             {cart.map((item, index) => (
               <div
                 key={item.id + '_' + index}
                 onClick={() => onSelectItem(index)}
-                className={`grid grid-cols-[40px_1fr_80px_120px] gap-4 p-3 rounded border cursor-pointer transition-colors ${
+                className={`grid grid-cols-[50px_1fr_100px_140px] gap-4 p-4 rounded-md border cursor-pointer transition-colors ${
                   selectedItemIndex === index 
-                    ? 'bg-[#007bff] text-white border-[#007bff]' 
-                    : 'bg-white hover:bg-gray-50 border-gray-200'
+                    ? 'bg-primary text-primary-foreground border-primary' 
+                    : 'bg-card hover:bg-accent border-border'
                 }`}
               >
                 <div className="font-semibold text-base">{index + 1}.</div>
-                <div className="font-medium">{item.name}</div>
-                <div className="text-center font-semibold">- {item.quantity} -</div>
-                <div className="text-right font-semibold">Rp {formatPrice(item.price * item.quantity)}</div>
+                <div className="font-medium text-base">{item.name}</div>
+                <div className="text-center font-semibold text-base">- {item.quantity} -</div>
+                <div className="text-right font-semibold text-base">Rp {formatPrice(item.price * item.quantity)}</div>
               </div>
             ))}
           </div>

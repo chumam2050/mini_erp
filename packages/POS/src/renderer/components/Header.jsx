@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Settings } from 'lucide-react'
 import { Button } from './ui/button'
+import ThemeToggle from './ThemeToggle'
 
 function Header({ onSettingsClick }) {
   const [datetime, setDatetime] = useState('')
@@ -28,22 +29,23 @@ function Header({ onSettingsClick }) {
   }, [])
 
   return (
-    <header className="bg-[#343a40] text-white shadow-md">
-      <div className="flex justify-between items-center px-6 py-3">
+    <header className="bg-card border-b shadow-md">
+      <div className="flex justify-between items-center px-6 py-4">
         <div className="flex-1">
-          <h1 className="text-lg font-semibold mb-1">Supermarket Sejahtera | POS #04</h1>
-          <div className="flex gap-6 text-sm text-gray-300">
-            <span>Kasir: <span className="text-white">{cashierName}</span></span>
+          <h1 className="text-lg font-semibold mb-1.5 text-foreground">Supermarket Sejahtera | POS #04</h1>
+          <div className="flex gap-6 text-sm text-muted-foreground">
+            <span>Kasir: <span className="text-foreground font-medium">{cashierName}</span></span>
             <span>{datetime}</span>
-            <span>Status: <span className="text-green-400 font-semibold">Online</span></span>
+            <span>Status: <span className="text-foreground font-semibold">Online</span></span>
           </div>
         </div>
-        <div>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button 
             variant="ghost" 
             size="icon"
             onClick={onSettingsClick}
-            className="text-white hover:bg-white/10"
+            className="h-9 w-9 hover:bg-accent"
           >
             <Settings className="h-5 w-5" />
           </Button>

@@ -222,10 +222,10 @@ function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen bg-background text-foreground">
       <Header onSettingsClick={() => setShowSettings(true)} />
       
-      <main className="flex-1 overflow-hidden bg-[#2d3436]">
+      <main className="flex-1 overflow-hidden bg-background">
         <div className="grid grid-cols-[1.5fr_1fr] h-full gap-3 p-3">
           <CartItems
             cart={cart}

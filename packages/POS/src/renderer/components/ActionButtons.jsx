@@ -7,9 +7,9 @@ function ActionButtons({ onChangeQty, onClearAll, onInputMember }) {
       <Button 
         onClick={onChangeQty}
         variant="outline"
-        className="h-20 flex-col gap-1 text-sm font-semibold hover:bg-accent"
+        className="h-24 flex-col gap-2 text-sm font-semibold hover:bg-accent"
       >
-        <Edit3 className="h-5 w-5" />
+        <Edit3 className="h-6 w-6" />
         <div className="text-center leading-tight">
           UBAH QTY<br />(+/-)
         </div>
@@ -17,9 +17,9 @@ function ActionButtons({ onChangeQty, onClearAll, onInputMember }) {
       <Button 
         onClick={onInputMember}
         variant="outline"
-        className="h-20 flex-col gap-1 text-sm font-semibold hover:bg-accent"
+        className="h-24 flex-col gap-2 text-sm font-semibold hover:bg-accent"
       >
-        <UserPlus className="h-5 w-5" />
+        <UserPlus className="h-6 w-6" />
         <div className="text-center leading-tight">
           INPUT<br />MEMBER
         </div>
@@ -27,9 +27,9 @@ function ActionButtons({ onChangeQty, onClearAll, onInputMember }) {
       <Button 
         onClick={onClearAll}
         variant="destructive"
-        className="h-20 flex-col gap-1 text-sm font-semibold"
+        className="h-24 flex-col gap-2 text-sm font-semibold"
       >
-        <Trash2 className="h-5 w-5" />
+        <Trash2 className="h-6 w-6" />
         <div className="text-center leading-tight">
           CLEAR ALL<br />(Hapus Semua)
         </div>
