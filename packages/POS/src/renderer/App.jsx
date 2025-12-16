@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Header from './components/Header'
 import CartItems from './components/CartItems'
+import ProductList from './components/ProductList'
 import ActionButtons from './components/ActionButtons'
 import Summary from './components/Summary'
 import SettingsModal from './components/SettingsModal'
@@ -20,6 +21,7 @@ function App() {
   const [selectedItemIndex, setSelectedItemIndex] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [apiConfig, setApiConfig] = useState({ baseUrl: 'http://localhost:3000', timeout: 5000 })
+  const [isProductListCollapsed, setIsProductListCollapsed] = useState(false)
   const barcodeInputRef = useRef(null)
 
   // Load saved cart and config on mount
@@ -226,7 +228,19 @@ function App() {
       <Header onSettingsClick={() => setShowSettings(true)} />
       
       <main className="flex-1 overflow-hidden bg-background">
-        <div className="grid grid-cols-[1.5fr_1fr] h-full gap-3 p-3">
+        <div className={`grid h-full gap-3 p-3 transition-all duration-300 ${
+          isProductListCollapsed 
+            ? 'grid-cols-[auto_1.2fr_1fr]' 
+            : 'grid-cols-[1fr_1fr_1fr]'
+        }`}>
+          <ProductList
+            products={products}
+            onAddProduct={addToCart}
+            formatPrice={formatPrice}
+            isCollapsed={isProductListCollapsed}
+            onToggleCollapse={() => setIsProductListCollapsed(!isProductListCollapsed)}
+          />
+          
           <CartItems
             cart={cart}
             selectedItemIndex={selectedItemIndex}
