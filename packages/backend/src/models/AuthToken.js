@@ -1,5 +1,6 @@
 import { DataTypes } from 'sequelize'
 import sequelize from '../config/database.js'
+import User from './User.js'
 
 const AuthToken = sequelize.define('AuthToken', {
     id: {
@@ -11,7 +12,7 @@ const AuthToken = sequelize.define('AuthToken', {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: 'Users',
+            model: User,
             key: 'id'
         },
         onDelete: 'CASCADE'

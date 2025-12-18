@@ -101,6 +101,7 @@ const startServer = async () => {
         
         // Sync database models
         await sequelize.sync({ alter: true })
+        
         console.log(chalk.green('✅ Database models synchronized'))
 
         // Start Express server hanya jika bukan test environment

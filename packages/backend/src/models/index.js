@@ -13,6 +13,7 @@ SaleItem.belongsTo(Sale, { foreignKey: 'saleId' })
 SaleItem.belongsTo(Product, { foreignKey: 'productId' })
 
 User.hasMany(AuthToken, { foreignKey: 'userId', as: 'tokens' })
+
 AuthToken.belongsTo(User, { foreignKey: 'userId' })
 
 export {

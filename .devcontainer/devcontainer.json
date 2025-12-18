@@ -17,5 +17,6 @@
 			]
 		}
 	},
-	"shutdownAction": "stopCompose"
+	"shutdownAction": "stopCompose",
+	"postCreateCommand": "bash /workspace/.devcontainer/post-create.sh"
 }
