@@ -6,8 +6,9 @@ process.env.PORT = 5001
 process.env.JWT_SECRET = 'test-secret-key-for-testing-only'
 process.env.JWT_EXPIRES_IN = '1h'
 
-// Mock database untuk test environment
-process.env.DB_HOST = 'localhost'
+// PostgreSQL database untuk test environment
+// Database minierp_test dibuat otomatis oleh .devcontainer/post-create.sh
+process.env.DB_HOST = 'db'
 process.env.DB_PORT = 5432
 process.env.DB_NAME = 'minierp_test'
 process.env.DB_USER = 'user'

@@ -1,444 +1,421 @@
-import { describe, test, expect, beforeAll, afterAll, beforeEach } from '@jest/globals'
-import request from 'supertest'
-import app from '../src/server.js'
-import sequelize from '../src/config/database.js'
-import User from '../src/models/User.js'
-import AuthToken from '../src/models/AuthToken.js'
-
-describe('Authentication API', () => {
-    let authToken = ''
-    let testUserId = null
-
-    beforeAll(async () => {
-        // Sync database untuk test
-        await sequelize.sync({ force: true })
-        
-        // Create test user
-        const testUser = await User.create({
-            name: 'Test Admin',
-            email: 'admin@test.com',
-            password: 'password123',
-            role: 'Administrator'
-        })
-        testUserId = testUser.id
-    })
-
-    afterAll(async () => {
-        await sequelize.close()
-    })
-
-    beforeEach(async () => {
-        // Clear auth tokens before each test
-        await AuthToken.destroy({ where: {} })
-    })
-
-    describe('POST /api/auth/register', () => {
-        test('should register a new user successfully', async () => {
-            const response = await request(app)
-                .post('/api/auth/register')
-                .send({
-                    name: 'New User',
-                    email: 'newuser@test.com',
-                    password: 'password123',
-                    role: 'Staff'
-                })
-
-            expect(response.status).toBe(201)
-            expect(response.body).toHaveProperty('message', 'User registered successfully')
-            expect(response.body).toHaveProperty('user')
-            expect(response.body).toHaveProperty('token')
-            expect(response.body.user).toHaveProperty('email', 'newuser@test.com')
-            expect(response.body.user).not.toHaveProperty('password')
-        })
-
-        test('should fail with missing required fields', async () => {
-            const response = await request(app)
-                .post('/api/auth/register')
-                .send({
-                    name: 'Incomplete User'
-                })
-
-            expect(response.status).toBe(400)
-            expect(response.body).toHaveProperty('error')
-        })
-
-        test('should fail with duplicate email', async () => {
-            const response = await request(app)
-                .post('/api/auth/register')
-                .send({
-                    name: 'Duplicate User',
-                    email: 'admin@test.com',
-                    password: 'password123'
-                })
-
-            expect(response.status).toBe(400)
-            expect(response.body).toHaveProperty('error')
-            expect(response.body.message).toContain('already')
-        })
-
-        test('should fail with invalid email format', async () => {
-            const response = await request(app)
-                .post('/api/auth/register')
-                .send({
-                    name: 'Invalid Email',
-                    email: 'not-an-email',
-                    password: 'password123'
-                })
-
-            expect(response.status).toBe(400)
-            expect(response.body).toHaveProperty('error')
-        })
-
-        test('should fail with password less than 6 characters', async () => {
-            const response = await request(app)
-                .post('/api/auth/register')
-                .send({
-                    name: 'Short Password',
-                    email: 'short@test.com',
-                    password: '12345'
-                })
-
-            expect(response.status).toBe(400)
-            expect(response.body).toHaveProperty('error')
-        })
-    })
-
-    describe('POST /api/auth/login', () => {
-        test('should login successfully with correct credentials', async () => {
-            const response = await request(app)
-                .post('/api/auth/login')
-                .send({
-                    email: 'admin@test.com',
-                    password: 'password123'
-                })
-
-            expect(response.status).toBe(200)
-            expect(response.body).toHaveProperty('message', 'Login successful')
-            expect(response.body).toHaveProperty('user')
-            expect(response.body).toHaveProperty('token')
-            expect(response.body.user).not.toHaveProperty('password')
-
-            // Save token untuk test selanjutnya
-            authToken = response.body.token
-        })
-
-        test('should fail with incorrect password', async () => {
-            const response = await request(app)
-                .post('/api/auth/login')
-                .send({
-                    email: 'admin@test.com',
-                    password: 'wrongpassword'
-                })
-
-            expect(response.status).toBe(401)
-            expect(response.body).toHaveProperty('error')
-            expect(response.body.message).toContain('Invalid')
-        })
-
-        test('should fail with non-existent email', async () => {
-            const response = await request(app)
-                .post('/api/auth/login')
-                .send({
-                    email: 'nonexistent@test.com',
-                    password: 'password123'
-                })
-
-            expect(response.status).toBe(401)
-            expect(response.body).toHaveProperty('error')
-        })
-
-        test('should fail with missing credentials', async () => {
-            const response = await request(app)
-                .post('/api/auth/login')
-                .send({})
-
-            expect(response.status).toBe(400)
-            expect(response.body).toHaveProperty('error')
-        })
-    })
-
-    describe('GET /api/auth/me', () => {
-        test('should get current user profile with valid token', async () => {
-            const response = await request(app)
-                .get('/api/auth/me')
-                .set('Authorization', `Bearer ${authToken}`)
-
-            expect(response.status).toBe(200)
-            expect(response.body).toHaveProperty('user')
-            expect(response.body.user).toHaveProperty('email', 'admin@test.com')
-            expect(response.body.user).not.toHaveProperty('password')
-        })
-
-        test('should fail without token', async () => {
-            const response = await request(app)
-                .get('/api/auth/me')
-
-            expect(response.status).toBe(401)
-            expect(response.body).toHaveProperty('error')
-        })
-
-        test('should fail with invalid token', async () => {
-            const response = await request(app)
-                .get('/api/auth/me')
-                .set('Authorization', 'Bearer invalid-token')
-
-            expect(response.status).toBe(403)
-            expect(response.body).toHaveProperty('error')
-        })
-    })
-
-    describe('PUT /api/auth/me', () => {
-        test('should update user profile successfully', async () => {
-            const response = await request(app)
-                .put('/api/auth/me')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send({
-                    name: 'Updated Admin Name'
-                })
-
-            expect(response.status).toBe(200)
-            expect(response.body).toHaveProperty('message')
-            expect(response.body.user).toHaveProperty('name', 'Updated Admin Name')
-        })
-
-        test('should fail to update with duplicate email', async () => {
-            // Create another user first
-            await User.create({
-                name: 'Another User',
-                email: 'another@test.com',
-                password: 'password123',
-                role: 'Staff'
-            })
-
-            const response = await request(app)
-                .put('/api/auth/me')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send({
-                    email: 'another@test.com'
-                })
-
-            expect(response.status).toBe(400)
-            expect(response.body).toHaveProperty('error')
-        })
-
-        test('should fail without authentication', async () => {
-            const response = await request(app)
-                .put('/api/auth/me')
-                .send({
-                    name: 'Unauthorized Update'
-                })
-
-            expect(response.status).toBe(401)
-        })
-    })
-
-    describe('PUT /api/auth/change-password', () => {
-        test('should change password successfully', async () => {
-            const response = await request(app)
-                .put('/api/auth/change-password')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send({
-                    currentPassword: 'password123',
-                    newPassword: 'newpassword123'
-                })
-
-            expect(response.status).toBe(200)
-            expect(response.body).toHaveProperty('message')
-            expect(response.body.message).toContain('changed')
-        })
-
-        test('should fail with incorrect current password', async () => {
-            const response = await request(app)
-                .put('/api/auth/change-password')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send({
-                    currentPassword: 'wrongpassword',
-                    newPassword: 'newpassword123'
-                })
-
-            expect(response.status).toBe(401)
-            expect(response.body).toHaveProperty('error')
-        })
-
-        test('should fail with missing fields', async () => {
-            const response = await request(app)
-                .put('/api/auth/change-password')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send({
-                    currentPassword: 'password123'
-                })
-
-            expect(response.status).toBe(400)
-        })
-
-        test('should fail with password less than 6 characters', async () => {
-            const response = await request(app)
-                .put('/api/auth/change-password')
-                .set('Authorization', `Bearer ${authToken}`)
-                .send({
-                    currentPassword: 'newpassword123',
-                    newPassword: '12345'
-                })
-
-            expect(response.status).toBe(400)
-        })
-    })
-
-    describe('POST /api/auth/logout', () => {
-        let logoutToken = ''
-
-        beforeEach(async () => {
-            // Login untuk mendapatkan token baru untuk logout test
-            const loginResponse = await request(app)
-                .post('/api/auth/login')
-                .send({
-                    email: 'admin@test.com',
-                    password: 'password123'
-                })
-            logoutToken = loginResponse.body.token
-        })
-
-        test('should logout successfully with valid token', async () => {
-            const response = await request(app)
-                .post('/api/auth/logout')
-                .set('Authorization', `Bearer ${logoutToken}`)
-
-            expect(response.status).toBe(200)
-            expect(response.body).toHaveProperty('message', 'Logout successful')
-        })
-
-        test('should invalidate token after logout', async () => {
-            // Logout
-            await request(app)
-                .post('/api/auth/logout')
-                .set('Authorization', `Bearer ${logoutToken}`)
-
-            // Try to use the same token after logout
-            const response = await request(app)
-                .get('/api/auth/me')
-                .set('Authorization', `Bearer ${logoutToken}`)
-
-            expect(response.status).toBe(401)
-            expect(response.body).toHaveProperty('error')
-        })
-
-        test('should fail logout without token', async () => {
-            const response = await request(app)
-                .post('/api/auth/logout')
-
-            expect(response.status).toBe(401)
-            expect(response.body).toHaveProperty('error')
-        })
-
-        test('should fail logout with invalid token', async () => {
-            const response = await request(app)
-                .post('/api/auth/logout')
-                .set('Authorization', 'Bearer invalid-token-here')
-
-            expect(response.status).toBe(403)
-            expect(response.body).toHaveProperty('error')
-        })
-    })
-
-    describe('Token Management', () => {
-        test('should save token to database on login', async () => {
-            const response = await request(app)
-                .post('/api/auth/login')
-                .send({
-                    email: 'admin@test.com',
-                    password: 'password123'
-                })
-
-            expect(response.status).toBe(200)
-            const token = response.body.token
-
-            // Check if token exists in database
-            const savedToken = await AuthToken.findOne({ where: { token } })
-            expect(savedToken).not.toBeNull()
-            expect(savedToken.userId).toBe(testUserId)
-            expect(savedToken.expiresAt).toBeInstanceOf(Date)
-        })
-
-        test('should remove token from database on logout', async () => {
-            // Login first
-            const loginResponse = await request(app)
-                .post('/api/auth/login')
-                .send({
-                    email: 'admin@test.com',
-                    password: 'password123'
-                })
-            const token = loginResponse.body.token
-
-            // Verify token exists
-            let savedToken = await AuthToken.findOne({ where: { token } })
-            expect(savedToken).not.toBeNull()
-
-            // Logout
-            await request(app)
-                .post('/api/auth/logout')
-                .set('Authorization', `Bearer ${token}`)
-
-            // Verify token is removed
-            savedToken = await AuthToken.findOne({ where: { token } })
-            expect(savedToken).toBeNull()
-        })
-
-        test('should support multiple active sessions', async () => {
-            // Login from first device
-            const login1 = await request(app)
-                .post('/api/auth/login')
-                .send({
-                    email: 'admin@test.com',
-                    password: 'password123'
-                })
-
-            // Login from second device
-            const login2 = await request(app)
-                .post('/api/auth/login')
-                .send({
-                    email: 'admin@test.com',
-                    password: 'password123'
-                })
-
-            // Both tokens should be valid
-            const response1 = await request(app)
-                .get('/api/auth/me')
-                .set('Authorization', `Bearer ${login1.body.token}`)
-            expect(response1.status).toBe(200)
-
-            const response2 = await request(app)
-                .get('/api/auth/me')
-                .set('Authorization', `Bearer ${login2.body.token}`)
-            expect(response2.status).toBe(200)
-
-            // Check database has both tokens
-            const tokens = await AuthToken.findAll({ where: { userId: testUserId } })
-            expect(tokens.length).toBeGreaterThanOrEqual(2)
-        })
-
-        test('should not authenticate with expired token', async () => {
-            // Login first
-            const loginResponse = await request(app)
-                .post('/api/auth/login')
-                .send({
-                    email: 'admin@test.com',
-                    password: 'password123'
-                })
-            const token = loginResponse.body.token
-
-            // Manually expire the token in database
-            await AuthToken.update(
-                { expiresAt: new Date(Date.now() - 1000) },
-                { where: { token } }
-            )
-
-            // Try to use expired token
-            const response = await request(app)
-                .get('/api/auth/me')
-                .set('Authorization', `Bearer ${token}`)
-
-            expect(response.status).toBe(401)
-            expect(response.body.message).toContain('invalid or has been revoked')
-        })
-    })
-})
+import {
+  describe,
+  test,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+} from "@jest/globals";
+import request from "supertest";
+import app from "../src/server.js";
+import sequelize from "../src/config/database.js";
+import User from "../src/models/User.js";
+import AuthToken from "../src/models/AuthToken.js";
+import { createUser, createAdmin } from "./factories/userFactory.js";
+
+describe("Authentication API", () => {
+  beforeAll(async () => {
+    // Sync database untuk test
+    await sequelize.sync({ force: true });
+  });
+
+  beforeEach(async () => {
+    // Clear all data before each test
+    await AuthToken.destroy({ where: {} });
+    await User.destroy({ where: {} });
+  });
+
+  afterAll(async () => {
+    await sequelize.close();
+  });
+
+  const getToken = async () => {
+    const plainPassword = "password123";
+    const user = await createUser({ password: plainPassword });
+    const loginResponse = await request(app).post("/api/auth/login").send({
+      email: user.email,
+      password: plainPassword,
+    });
+    const authToken = loginResponse.body.token;
+    return { authToken, user, plainPassword };
+  };
+
+  describe("POST /api/auth/register", () => {
+    test("should register a new user successfully", async () => {
+      const response = await request(app).post("/api/auth/register").send({
+        name: "New User",
+        email: "newuser@test.com",
+        password: "password123",
+        role: "Staff",
+      });
+
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty(
+        "message",
+        "User registered successfully"
+      );
+      expect(response.body).toHaveProperty("user");
+      expect(response.body).toHaveProperty("token");
+      expect(response.body.user).toHaveProperty("email", "newuser@test.com");
+      expect(response.body.user).not.toHaveProperty("password");
+    });
+
+    test("should fail with missing required fields", async () => {
+      const response = await request(app).post("/api/auth/register").send({
+        name: "Incomplete User",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error");
+    });
+
+    test("should fail with duplicate email", async () => {
+      // First create a user with this email
+      await createUser({ email: "admin@test.com" });
+      
+      // Try to register with the same email
+      const response = await request(app).post("/api/auth/register").send({
+        name: "Duplicate User",
+        email: "admin@test.com",
+        password: "password123",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.message).toContain("already");
+    });
+
+    test("should fail with invalid email format", async () => {
+      const response = await request(app).post("/api/auth/register").send({
+        name: "Invalid Email",
+        email: "not-an-email",
+        password: "password123",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error");
+    });
+
+    test("should fail with password less than 6 characters", async () => {
+      const response = await request(app).post("/api/auth/register").send({
+        name: "Short Password",
+        email: "short@test.com",
+        password: "12345",
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error");
+    });
+  });
+
+  describe("POST /api/auth/login", () => {
+    test("should login successfully with correct credentials", async () => {
+      const plainPassword = "password123";
+      const user = await createUser({ password: plainPassword });
+      const response = await request(app).post("/api/auth/login").send({
+        email: user.email,
+        password: plainPassword,
+      });
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("message", "Login successful");
+      expect(response.body).toHaveProperty("user");
+      expect(response.body).toHaveProperty("token");
+      expect(response.body.user).not.toHaveProperty("password");
+    });
+
+    test("should fail with incorrect password", async () => {
+      const plainPassword = "password123";
+      const user = await createUser({ password: plainPassword });
+      const response = await request(app).post("/api/auth/login").send({
+        email: user.email,
+        password: "wrongpassword",
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.message).toContain("Invalid");
+    });
+
+    test("should fail with non-existent email", async () => {
+      const response = await request(app).post("/api/auth/login").send({
+        email: "nonexistent@test.com",
+        password: "password123",
+      });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty("error");
+    });
+
+    test("should fail with missing credentials", async () => {
+      const response = await request(app).post("/api/auth/login").send({});
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error");
+    });
+  });
+
+  describe("GET /api/auth/me", () => {
+    test("should get current user profile with valid token", async () => {
+      const { authToken, user } = await getToken();
+      const response = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("user");
+      expect(response.body.user).toHaveProperty("email", user.email);
+      expect(response.body.user).not.toHaveProperty("password");
+    });
+
+    test("should fail without token", async () => {
+      const response = await request(app).get("/api/auth/me");
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty("error");
+    });
+
+    test("should fail with invalid token", async () => {
+      const response = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", "Bearer invalid-token");
+
+      expect(response.status).toBe(403);
+      expect(response.body).toHaveProperty("error");
+    });
+  });
+
+  describe("PUT /api/auth/me", () => {
+  
+    test("should update user profile successfully", async () => {
+      const { authToken } = await getToken();
+      const response = await request(app)
+        .put("/api/auth/me")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          name: "Updated Admin Name",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("message");
+      expect(response.body.user).toHaveProperty("name", "Updated Admin Name");
+    });
+
+    test("should fail to update with duplicate email", async () => {
+      const { authToken } = await getToken();
+      await createUser({ email: "another@test.com" });
+      const response = await request(app)
+        .put("/api/auth/me")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          email: "another@test.com",
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error");
+    });
+
+    test("should fail without authentication", async () => {
+      const response = await request(app).put("/api/auth/me").send({
+        name: "Unauthorized Update",
+      });
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe("PUT /api/auth/change-password", () => {
+    test("should change password successfully", async () => {
+      const { authToken } = await getToken();
+      const response = await request(app)
+        .put("/api/auth/change-password")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          currentPassword: "password123",
+          newPassword: "newpassword123",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("message");
+      expect(response.body.message).toContain("changed");
+    });
+
+    test("should fail with incorrect current password", async () => {
+      const { authToken } = await getToken();
+      const response = await request(app)
+        .put("/api/auth/change-password")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          currentPassword: "wrongpassword",
+          newPassword: "newpassword123",
+        });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty("error");
+    });
+
+    test("should fail with missing fields", async () => {
+      const { authToken } = await getToken();
+      const response = await request(app)
+        .put("/api/auth/change-password")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          currentPassword: "password123",
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test("should fail with password less than 6 characters", async () => {
+      const { authToken } = await getToken();
+      const response = await request(app)
+        .put("/api/auth/change-password")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          currentPassword: "password123",
+          newPassword: "12345",
+        });
+
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe("POST /api/auth/logout", () => {
+    test("should logout successfully with valid token", async () => {
+      const { authToken } = await getToken();
+      const response = await request(app)
+        .post("/api/auth/logout")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty("message", "Logout successful");
+    });
+
+    test("should invalidate token after logout", async () => {
+      const { authToken } = await getToken();
+      // Logout
+      await request(app)
+        .post("/api/auth/logout")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      // Try to use the same token after logout
+      const response = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${authToken}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty("error");
+    });
+
+    test("should fail logout without token", async () => {
+      const response = await request(app).post("/api/auth/logout");
+
+      expect(response.status).toBe(401);
+      expect(response.body).toHaveProperty("error");
+    });
+
+    test("should fail logout with invalid token", async () => {
+      const response = await request(app)
+        .post("/api/auth/logout")
+        .set("Authorization", "Bearer invalid-token-here");
+
+      expect(response.status).toBe(403);
+      expect(response.body).toHaveProperty("error");
+    });
+  });
+
+  describe("Token Management", () => {
+    test("should save token to database on login", async () => {
+      const plainPassword = "password123";
+      const user = await createUser({ password: plainPassword });
+      const loginResponse = await request(app)
+        .post("/api/auth/login")
+        .send({ email: user.email, password: plainPassword });
+
+      expect(loginResponse.status).toBe(200);
+
+      const token = loginResponse.body.token;
+
+      // Check if token exists in database
+      const savedToken = await AuthToken.findOne({ where: { token } });
+      expect(savedToken).not.toBeNull();
+      expect(savedToken.userId).toBe(user.id);
+      expect(savedToken.expiresAt).toBeInstanceOf(Date);
+    });
+
+    test("should remove token from database on logout", async () => {
+      const plainPassword = "password123";
+      const user = await createUser({ password: plainPassword });
+      const loginResponse = await request(app)
+        .post("/api/auth/login")
+        .send({ email: user.email, password: plainPassword });
+
+      expect(loginResponse.status).toBe(200);
+
+      const token = loginResponse.body.token;
+
+      // Verify token exists
+      let savedToken = await AuthToken.findOne({ where: { token } });
+      expect(savedToken).not.toBeNull();
+
+      // Logout
+      await request(app)
+        .post("/api/auth/logout")
+        .set("Authorization", `Bearer ${token}`);
+
+      // Verify token is removed
+      savedToken = await AuthToken.findOne({ where: { token } });
+      expect(savedToken).toBeNull();
+    });
+
+    test("should support multiple active sessions", async () => {
+      const plainPassword = "password123";
+      const user = await createUser({ password: plainPassword });
+      const login1 = await request(app).post("/api/auth/login").send({ email: user.email, password: plainPassword });
+      expect(login1.status).toBe(200);
+      
+      // Wait 1 second to ensure different JWT timestamps (iat is in seconds)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Login from second device
+      const login2 = await request(app).post("/api/auth/login").send({ email: user.email, password: plainPassword });
+      expect(login2.status).toBe(200);
+
+      // Both tokens should be valid
+      const response1 = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${login1.body.token}`);
+      expect(response1.status).toBe(200);
+
+      const response2 = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${login2.body.token}`);
+      expect(response2.status).toBe(200);
+
+      // Check database has both tokens
+      const tokens = await AuthToken.findAll({ where: { userId: user.id } });
+      expect(tokens.length).toBeGreaterThanOrEqual(2);
+    });
+
+    test("should not authenticate with expired token", async () => {
+      const plainPassword = "password123";
+      const user = await createUser({ password: plainPassword });
+      const login1 = await request(app).post("/api/auth/login").send({ email: user.email, password: plainPassword });
+      expect(login1.status).toBe(200);
+      const token = login1.body.token;
+
+      // Manually expire the token in database
+      await AuthToken.update(
+        { expiresAt: new Date(Date.now() - 1000) },
+        { where: { token } }
+      );
+
+      // Try to use expired token
+      const response = await request(app)
+        .get("/api/auth/me")
+        .set("Authorization", `Bearer ${token}`);
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toContain("invalid or has been revoked");
+    });
+  });
+});

@@ -2,10 +2,15 @@ import { Wallet, CreditCard, Smartphone } from 'lucide-react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 
-function Summary({ cart, formatPrice, onCheckout }) {
+function Summary({ cart, formatPrice, onCheckout, posSettings = {} }) {
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const tax = subtotal * 0.11
-  const discount = 0
+  const taxRate = posSettings.taxRate || 11
+  const defaultDiscount = posSettings.defaultDiscount || 0
+  const enableTax = posSettings.enableTax !== false
+  const enableDiscount = posSettings.enableDiscount !== false
+  
+  const tax = enableTax ? subtotal * (taxRate / 100) : 0
+  const discount = enableDiscount ? subtotal * (defaultDiscount / 100) : 0
   const total = Math.round(subtotal + tax - discount)
 
   return (
@@ -19,14 +24,18 @@ function Summary({ cart, formatPrice, onCheckout }) {
           <span className="text-muted-foreground">Subtotal:</span>
           <span className="font-semibold">Rp {formatPrice(subtotal)}</span>
         </div>
-        <div className="flex justify-between text-base">
-          <span className="text-muted-foreground">PPN (11%):</span>
-          <span className="font-semibold">Rp {formatPrice(Math.round(tax))}</span>
-        </div>
-        <div className="flex justify-between text-base">
-          <span className="text-muted-foreground">Diskon:</span>
-          <span className="font-semibold">- Rp {formatPrice(discount)}</span>
-        </div>
+        {enableTax && (
+          <div className="flex justify-between text-base">
+            <span className="text-muted-foreground">PPN ({taxRate}%):</span>
+            <span className="font-semibold">Rp {formatPrice(Math.round(tax))}</span>
+          </div>
+        )}
+        {enableDiscount && defaultDiscount > 0 && (
+          <div className="flex justify-between text-base">
+            <span className="text-muted-foreground">Diskon ({defaultDiscount}%):</span>
+            <span className="font-semibold">- Rp {formatPrice(Math.round(discount))}</span>
+          </div>
+        )}
         <div className="flex justify-between text-2xl font-bold text-destructive pt-4 mt-2 border-t-2 border-border">
           <span>TOTAL:</span>
           <span>Rp {formatPrice(total)}</span>

@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, Plus, Minus } from 'lucide-react'
 import { Card } from './ui/card'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 
-function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barcodeInputRef, formatPrice }) {
+function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barcodeInputRef, formatPrice, onIncrementQuantity, onDecrementQuantity }) {
   const [barcodeValue, setBarcodeValue] = useState('')
 
   const handleSearch = () => {
@@ -52,17 +52,63 @@ function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barc
             {cart.map((item, index) => (
               <div
                 key={item.id + '_' + index}
-                onClick={() => onSelectItem(index)}
-                className={`grid grid-cols-[50px_1fr_100px_140px] gap-4 p-4 rounded-md border cursor-pointer transition-colors ${
+                className={`grid grid-cols-[50px_1fr_140px_140px] gap-4 p-4 rounded-md border transition-colors ${
                   selectedItemIndex === index 
                     ? 'bg-primary text-primary-foreground border-primary' 
                     : 'bg-card hover:bg-accent border-border'
                 }`}
               >
-                <div className="font-semibold text-base">{index + 1}.</div>
-                <div className="font-medium text-base">{item.name}</div>
-                <div className="text-center font-semibold text-base">- {item.quantity} -</div>
-                <div className="text-right font-semibold text-base">Rp {formatPrice(item.price * item.quantity)}</div>
+                <div 
+                  className="font-semibold text-base cursor-pointer"
+                  onClick={() => onSelectItem(index)}
+                >
+                  {index + 1}.
+                </div>
+                <div 
+                  className="font-medium text-base cursor-pointer"
+                  onClick={() => onSelectItem(index)}
+                >
+                  {item.name}
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onDecrementQuantity(index)
+                    }}
+                    className={`h-8 w-8 p-0 ${
+                      selectedItemIndex === index
+                        ? 'bg-primary-foreground text-primary hover:bg-primary-foreground/90'
+                        : ''
+                    }`}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="font-semibold text-base min-w-[40px] text-center">{item.quantity}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onIncrementQuantity(index)
+                    }}
+                    className={`h-8 w-8 p-0 ${
+                      selectedItemIndex === index
+                        ? 'bg-primary-foreground text-primary hover:bg-primary-foreground/90'
+                        : ''
+                    }`}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div 
+                  className="text-right font-semibold text-base cursor-pointer"
+                  onClick={() => onSelectItem(index)}
+                >
+                  Rp {formatPrice(item.price * item.quantity)}
+                </div>
               </div>
             ))}
           </div>

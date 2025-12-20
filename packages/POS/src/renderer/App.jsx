@@ -27,6 +27,14 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [posSettings, setPosSettings] = useState({
+    plasticBagSmallPrice: 200,
+    plasticBagLargePrice: 500,
+    taxRate: 11,
+    defaultDiscount: 0,
+    enableTax: true,
+    enableDiscount: true
+  })
   const barcodeInputRef = useRef(null)
 
   // Check authentication on mount
@@ -39,6 +47,8 @@ function App() {
         if (authenticated) {
           const user = await getCurrentUser()
           setCurrentUser(user)
+          // Fetch POS settings
+          await fetchPosSettings()
         }
       } catch (error) {
         console.error('Auth check error:', error)
@@ -48,6 +58,29 @@ function App() {
     }
     checkAuth()
   }, [])
+
+  // Fetch POS settings from backend
+  const fetchPosSettings = async () => {
+    try {
+      const config = await window.electronAPI.getApiConfig()
+      const baseUrl = config?.baseUrl || 'http://localhost:5000'
+      
+      const response = await fetch(`${baseUrl}/api/settings?category=pos`)
+      if (response.ok) {
+        const settings = await response.json()
+        setPosSettings({
+          plasticBagSmallPrice: settings['pos.plastic_bag_small_price']?.value || 200,
+          plasticBagLargePrice: settings['pos.plastic_bag_large_price']?.value || 500,
+          taxRate: settings['pos.tax_rate']?.value || 11,
+          defaultDiscount: settings['pos.default_discount']?.value || 0,
+          enableTax: settings['pos.enable_tax']?.value !== false,
+          enableDiscount: settings['pos.enable_discount']?.value !== false
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching POS settings:', error)
+    }
+  }
 
   // Load saved cart and config on mount
   useEffect(() => {
@@ -153,6 +186,42 @@ function App() {
     }
   }
 
+  const incrementQuantity = (index) => {
+    setCart(prev => {
+      const updated = [...prev]
+      const item = updated[index]
+      // Check stock if available
+      if (item.stock && item.quantity >= item.stock) {
+        alert(`Stok tidak mencukupi! Stok tersedia: ${item.stock}`)
+        return prev
+      }
+      updated[index].quantity++
+      return updated
+    })
+  }
+
+  const decrementQuantity = (index) => {
+    setCart(prev => {
+      const updated = [...prev]
+      if (updated[index].quantity > 1) {
+        updated[index].quantity--
+        return updated
+      } else {
+        // Remove item if quantity becomes 0
+        if (confirm('Hapus item dari keranjang?')) {
+          updated.splice(index, 1)
+          if (selectedItemIndex === index) {
+            setSelectedItemIndex(null)
+          } else if (selectedItemIndex > index) {
+            setSelectedItemIndex(selectedItemIndex - 1)
+          }
+          return updated
+        }
+      }
+      return prev
+    })
+  }
+
   const clearAllItems = () => {
     if (cart.length === 0) {
       alert('Keranjang sudah kosong!')
@@ -180,6 +249,31 @@ function App() {
     }
   }
 
+  const addPlasticBag = (type) => {
+    const price = type === 'small' ? posSettings.plasticBagSmallPrice : posSettings.plasticBagLargePrice
+    const name = type === 'small' ? 'Kantong Plastik Kecil' : 'Kantong Plastik Besar'
+    
+    setCart(prev => {
+      const existingIndex = prev.findIndex(item => item.name === name)
+      
+      if (existingIndex >= 0) {
+        // Increment quantity if already exists
+        const updated = [...prev]
+        updated[existingIndex].quantity++
+        return updated
+      } else {
+        // Add new item
+        return [...prev, {
+          id: `plastic_${type}_${Date.now()}`,
+          name,
+          price,
+          quantity: 1,
+          isPlasticBag: true
+        }]
+      }
+    })
+  }
+
   const checkout = async (paymentMethod) => {
     if (cart.length === 0) {
       alert('Keranjang kosong!')
@@ -187,8 +281,9 @@ function App() {
     }
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    const tax = subtotal * 0.11
-    const total = Math.round(subtotal + tax)
+    const tax = posSettings.enableTax ? subtotal * (posSettings.taxRate / 100) : 0
+    const discount = posSettings.enableDiscount ? subtotal * (posSettings.defaultDiscount / 100) : 0
+    const total = Math.round(subtotal + tax - discount)
 
     let paymentMethodName = ''
     switch(paymentMethod) {
@@ -310,6 +405,8 @@ function App() {
             onBarcodeInput={handleBarcodeInput}
             barcodeInputRef={barcodeInputRef}
             formatPrice={formatPrice}
+            onIncrementQuantity={incrementQuantity}
+            onDecrementQuantity={decrementQuantity}
           />
           
           <div className="flex flex-col gap-3">
@@ -317,12 +414,14 @@ function App() {
               onChangeQty={changeQuantity}
               onClearAll={clearAllItems}
               onInputMember={inputMember}
+              onAddPlasticBag={addPlasticBag}
             />
             
             <Summary
               cart={cart}
               formatPrice={formatPrice}
               onCheckout={checkout}
+              posSettings={posSettings}
             />
           </div>
         </div>

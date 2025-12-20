@@ -79,7 +79,7 @@ export default function LoginPage({ onLoginSuccess }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-destructive/10 border border-destructive/50 text-destructive p-3 rounded-lg flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                 <div className="text-sm font-medium">{error}</div>
               </div>
             )}

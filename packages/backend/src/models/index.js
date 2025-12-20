@@ -3,6 +3,7 @@ import Product from './Product.js'
 import Sale from './Sale.js'
 import SaleItem from './SaleItem.js'
 import AuthToken from './AuthToken.js'
+import Settings from './Settings.js'
 
 // Setup associations
 Sale.belongsTo(User, { as: 'cashier', foreignKey: 'cashierId' })
@@ -21,5 +22,6 @@ export {
     Product,
     Sale,
     SaleItem,
-    AuthToken
+    AuthToken,
+    Settings
 }

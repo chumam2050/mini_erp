@@ -2,6 +2,7 @@ import sequelize from '../config/database.js'
 import chalk from 'chalk'
 import User from '../models/User.js'
 import Product from '../models/Product.js'
+import { seedDefaultSettings } from './seedSettings.js'
 
 const seedDatabase = async () => {
     try {
@@ -106,6 +107,9 @@ const seedDatabase = async () => {
         ])
 
         console.log(chalk.green(`✅ Created ${products.length} products`))
+
+        // Seed default settings
+        await seedDefaultSettings()
 
         console.log(chalk.green('\n🎉 Database seeding completed successfully!'))
         console.log(chalk.yellow('\n📝 Login credentials:'))

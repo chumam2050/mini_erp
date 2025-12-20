@@ -5,28 +5,34 @@ dotenv.config()
 
 const { Op } = Sequelize
 
-const sequelize = new Sequelize(
-    process.env.DB_NAME || 'minierp',
-    process.env.DB_USER || 'user',
-    process.env.DB_PASSWORD || 'password',
-    {
-        host: process.env.DB_HOST || 'db',
-        port: process.env.DB_PORT || 5432,
-        dialect: 'postgres',
-        logging: process.env.NODE_ENV === 'development' ? console.log : false,
-        pool: {
-            max: process.env.NODE_ENV === 'test' ? 2 : 5,
-            min: 0,
-            acquire: process.env.NODE_ENV === 'test' ? 5000 : 30000, // 5 detik untuk test, 30 detik untuk production
-            idle: process.env.NODE_ENV === 'test' ? 1000 : 10000   // 1 detik untuk test, 10 detik untuk production
-        },
-        dialectOptions: process.env.NODE_ENV === 'test' ? {
-            // Optimasi untuk test environment
-            statement_timeout: 5000, // 5 detik timeout untuk statements
-            idle_in_transaction_session_timeout: 5000 // 5 detik timeout untuk idle transactions
-        } : {}
-    }
-)
+// Use SQLite for development only, PostgreSQL for test and production
+const isTest = process.env.NODE_ENV === 'test'
+const isProduction = process.env.NODE_ENV === 'production'
+const isDevelopment = !isTest && !isProduction
+
+const sequelize = isDevelopment 
+    ? new Sequelize({
+        dialect: 'sqlite',
+        storage: './database.sqlite',
+        logging: console.log,
+    })
+    : new Sequelize(
+        process.env.DB_NAME || 'minierp',
+        process.env.DB_USER || 'user',
+        process.env.DB_PASSWORD || 'password',
+        {
+            host: process.env.DB_HOST || 'db',
+            port: process.env.DB_PORT || 5432,
+            dialect: 'postgres',
+            logging: false,
+            pool: {
+                max: 5,
+                min: 0,
+                acquire: 30000,
+                idle: 10000
+            }
+        }
+    )
 
 export const testConnection = async () => {
     try {

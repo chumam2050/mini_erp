@@ -20,6 +20,13 @@ import {
     setPrimaryImage,
     deleteProductMedia
 } from '../controllers/mediaController.js'
+import {
+    getAllSettings,
+    getSetting,
+    upsertSetting,
+    bulkUpsertSettings,
+    deleteSetting
+} from '../controllers/settingsController.js'
 import { upload } from '../config/multer.js'
 import posRoutes from './pos.js'
 
@@ -425,6 +432,92 @@ router.put('/products/:id/primary-image', authenticateToken, authorize('Administ
  *         description: File deleted successfully
  */
 router.delete('/products/:id/media', authenticateToken, authorize('Administrator', 'Manager'), deleteProductMedia)
+
+// Settings Routes
+/**
+ * @swagger
+ * /api/settings:
+ *   get:
+ *     summary: Get all settings
+ *     tags: [Settings]
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Settings retrieved successfully
+ */
+router.get('/settings', getAllSettings)
+
+/**
+ * @swagger
+ * /api/settings/{key}:
+ *   get:
+ *     summary: Get setting by key
+ *     tags: [Settings]
+ *     parameters:
+ *       - in: path
+ *         name: key
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Setting retrieved successfully
+ *       404:
+ *         description: Setting not found
+ */
+router.get('/settings/:key', getSetting)
+
+/**
+ * @swagger
+ * /api/settings:
+ *   post:
+ *     summary: Create or update setting
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Setting saved successfully
+ */
+router.post('/settings', authenticateToken, authorize('Administrator'), upsertSetting)
+
+/**
+ * @swagger
+ * /api/settings/bulk:
+ *   post:
+ *     summary: Update multiple settings
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Settings saved successfully
+ */
+router.post('/settings/bulk', authenticateToken, authorize('Administrator'), bulkUpsertSettings)
+
+/**
+ * @swagger
+ * /api/settings/{key}:
+ *   delete:
+ *     summary: Delete setting
+ *     tags: [Settings]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: key
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Setting deleted successfully
+ */
+router.delete('/settings/:key', authenticateToken, authorize('Administrator'), deleteSetting)
 
 // POS Routes
 router.use('/pos', posRoutes)

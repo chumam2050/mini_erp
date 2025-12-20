@@ -1,6 +1,6 @@
 import request from 'supertest'
 import app from '../src/server.js'
-import { User, Product, Sale, SaleItem } from '../src/models/index.js'
+import { User, Product, Sale, SaleItem, AuthToken } from '../src/models/index.js'
 import sequelize from '../src/config/database.js'
 import jwt from 'jsonwebtoken'
 
@@ -21,11 +21,23 @@ describe('POS API', () => {
       role: 'Staff'
     })
 
-    // Generate auth token
+    // Generate auth token and save to database
     authToken = jwt.sign(
       { id: testUser.id, email: testUser.email, role: testUser.role },
-      process.env.JWT_SECRET || 'test-secret'
+      process.env.JWT_SECRET || 'test-secret',
+      { expiresIn: '1h' }
     )
+    
+    // Save token to database so auth middleware can validate it
+    const expiresAt = new Date()
+    expiresAt.setHours(expiresAt.getHours() + 1)
+    await AuthToken.create({
+      userId: testUser.id,
+      token: authToken,
+      expiresAt: expiresAt,
+      userAgent: 'test',
+      ipAddress: '127.0.0.1'
+    })
 
     // Create test products
     const products = [
