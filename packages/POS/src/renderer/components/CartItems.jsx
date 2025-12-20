@@ -86,7 +86,7 @@ function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barc
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
-                  <span className="font-semibold text-base min-w-[40px] text-center">{item.quantity}</span>
+                  <span className="font-semibold text-base min-w-10 text-center">{item.quantity}</span>
                   <Button
                     variant="outline"
                     size="sm"

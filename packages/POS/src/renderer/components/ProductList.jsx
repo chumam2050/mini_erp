@@ -1,8 +1,8 @@
 import { Card } from './ui/card'
 import { Button } from './ui/button'
-import { Package2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Package2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 
-function ProductList({ products, onAddProduct, formatPrice, isCollapsed, onToggleCollapse }) {
+function ProductList({ products, onAddProduct, formatPrice, isCollapsed, onToggleCollapse, isLoading = false }) {
   return (
     <Card className={`flex flex-col h-full overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-24' : ''}`}>
       <div className="flex items-center justify-center gap-2 p-4 border-b bg-muted/50">
@@ -23,7 +23,21 @@ function ProductList({ products, onAddProduct, formatPrice, isCollapsed, onToggl
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:hover:bg-muted-foreground/30">
-        {isCollapsed ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="flex flex-col items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Memuat produk...</p>
+            </div>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <Package2 className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Tidak ada produk</p>
+            </div>
+          </div>
+        ) : isCollapsed ? (
           <div className="flex flex-col gap-2">
             {products.map((product) => (
               <Button

@@ -7,19 +7,12 @@ import Summary from './components/Summary'
 import SettingsModal from './components/SettingsModal'
 import LoginPage from './pages/LoginPage'
 import { isAuthenticated, getCurrentUser, logout } from './utils/auth'
-
-const mockProducts = [
-  { id: 1, barcode: '8991234567890', name: 'Minyak Goreng 2L', price: 35000, stock: 50 },
-  { id: 2, barcode: '8991234567891', name: 'Telur Ayam (kg)', price: 28000, stock: 30, perKg: true },
-  { id: 3, barcode: '8991234567892', name: 'Sabun Mandi Cair', price: 30000, stock: 100 },
-  { id: 4, barcode: '8991234567893', name: 'Roti Tawar Kupas', price: 18500, stock: 25 },
-  { id: 5, barcode: '8991234567894', name: 'Susu UHT 1L', price: 22000, stock: 40 },
-  { id: 6, barcode: '8991234567895', name: 'Gula Pasir 1kg', price: 15000, stock: 60 }
-]
+import { getProducts, getPosSettings, createSale } from './utils/api'
 
 function App() {
   const [cart, setCart] = useState([])
-  const [products] = useState(mockProducts)
+  const [products, setProducts] = useState([])
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const [selectedItemIndex, setSelectedItemIndex] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [apiConfig, setApiConfig] = useState({ baseUrl: 'http://localhost:5000', timeout: 5000 })
@@ -47,8 +40,9 @@ function App() {
         if (authenticated) {
           const user = await getCurrentUser()
           setCurrentUser(user)
-          // Fetch POS settings
+          // Fetch POS settings and products
           await fetchPosSettings()
+          await fetchProducts()
         }
       } catch (error) {
         console.error('Auth check error:', error)
@@ -59,22 +53,47 @@ function App() {
     checkAuth()
   }, [])
 
+  // Fetch products from backend
+  const fetchProducts = async () => {
+    try {
+      setIsLoadingProducts(true)
+      const response = await getProducts({ limit: 100 })
+      
+      if (response.success && response.data) {
+        // Map backend product structure to POS format
+        const mappedProducts = response.data.products.map(product => ({
+          id: product.id,
+          sku: product.sku,
+          name: product.name,
+          category: product.category,
+          price: parseFloat(product.price),
+          stock: product.stock,
+          primaryImage: product.primaryImage,
+          barcode: product.sku // Use SKU as barcode for now
+        }))
+        setProducts(mappedProducts)
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      alert('Gagal memuat produk: ' + error.message)
+    } finally {
+      setIsLoadingProducts(false)
+    }
+  }
+
   // Fetch POS settings from backend
   const fetchPosSettings = async () => {
     try {
-      const config = await window.electronAPI.getApiConfig()
-      const baseUrl = config?.baseUrl || 'http://localhost:5000'
+      const response = await getPosSettings()
       
-      const response = await fetch(`${baseUrl}/api/settings?category=pos`)
-      if (response.ok) {
-        const settings = await response.json()
+      if (response) {
         setPosSettings({
-          plasticBagSmallPrice: settings['pos.plastic_bag_small_price']?.value || 200,
-          plasticBagLargePrice: settings['pos.plastic_bag_large_price']?.value || 500,
-          taxRate: settings['pos.tax_rate']?.value || 11,
-          defaultDiscount: settings['pos.default_discount']?.value || 0,
-          enableTax: settings['pos.enable_tax']?.value !== false,
-          enableDiscount: settings['pos.enable_discount']?.value !== false
+          plasticBagSmallPrice: response['pos.plastic_bag_small_price']?.value || 200,
+          plasticBagLargePrice: response['pos.plastic_bag_large_price']?.value || 500,
+          taxRate: response['pos.tax_rate']?.value || 11,
+          defaultDiscount: response['pos.default_discount']?.value || 0,
+          enableTax: response['pos.enable_tax']?.value !== false,
+          enableDiscount: response['pos.enable_discount']?.value !== false
         })
       }
     } catch (error) {
@@ -102,6 +121,12 @@ function App() {
 
     window.electronAPI.onMenuAbout(() => {
       alert('Mini ERP - Point of Sales\nSupermarket Sejahtera\n\nA desktop POS application built with Electron')
+    })
+
+    // Barcode scanner listener
+    window.electronAPI.onBarcodeScanned((barcode) => {
+      console.log('Barcode scanned from device:', barcode)
+      handleBarcodeInput(barcode)
     })
 
     // Focus barcode input
@@ -281,22 +306,11 @@ function App() {
     }
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    const tax = posSettings.enableTax ? subtotal * (posSettings.taxRate / 100) : 0
-    const discount = posSettings.enableDiscount ? subtotal * (posSettings.defaultDiscount / 100) : 0
-    const total = Math.round(subtotal + tax - discount)
+    const discountAmount = posSettings.enableDiscount ? subtotal * (posSettings.defaultDiscount / 100) : 0
+    const tax = posSettings.enableTax ? (subtotal - discountAmount) * (posSettings.taxRate / 100) : 0
+    const total = Math.round(subtotal + tax - discountAmount)
 
-    let paymentMethodName = ''
-    switch(paymentMethod) {
-      case 'cash':
-        paymentMethodName = 'Tunai (Cash)'
-        break
-      case 'card':
-        paymentMethodName = 'Kartu (EDC)'
-        break
-      case 'ewallet':
-        paymentMethodName = 'QRIS / E-Wallet'
-        break
-    }
+    let amountPaid = total
 
     if (paymentMethod === 'cash') {
       const cashAmount = prompt(`Total: Rp ${formatPrice(total)}\n\nMasukkan jumlah uang tunai:`)
@@ -304,10 +318,12 @@ function App() {
         alert('Jumlah uang tidak mencukupi!')
         return
       }
+      amountPaid = parseInt(cashAmount)
 
-      const change = parseInt(cashAmount) - total
-      alert(`Pembayaran berhasil!\n\nTotal: Rp ${formatPrice(total)}\nBayar: Rp ${formatPrice(parseInt(cashAmount))}\nKembalian: Rp ${formatPrice(change)}`)
+      const change = amountPaid - total
+      alert(`Pembayaran berhasil!\n\nTotal: Rp ${formatPrice(total)}\nBayar: Rp ${formatPrice(amountPaid)}\nKembalian: Rp ${formatPrice(change)}`)
     } else {
+      const paymentMethodName = paymentMethod === 'card' ? 'Kartu (EDC)' : 'QRIS / E-Wallet'
       if (!confirm(`Proses pembayaran dengan ${paymentMethodName}?\n\nTotal: Rp ${formatPrice(total)}`)) {
         return
       }
@@ -315,22 +331,77 @@ function App() {
     }
 
     try {
-      const salesHistory = await window.electronAPI.storeGet('salesHistory') || []
-      salesHistory.push({
-        id: Date.now(),
-        items: cart,
-        subtotal: subtotal,
-        tax: tax,
-        total: total,
-        paymentMethod: paymentMethodName,
-        cashier: currentUser?.name || 'Unknown',
-        timestamp: new Date().toISOString()
-      })
-      await window.electronAPI.storeSet('salesHistory', salesHistory)
+      // Prepare sale data for backend
+      const saleData = {
+        items: cart.filter(item => !item.isPlasticBag).map(item => ({
+          productId: item.id,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          discount: 0,
+          discountType: 'fixed'
+        })),
+        discount: posSettings.defaultDiscount,
+        discountType: 'percentage',
+        taxRate: posSettings.taxRate,
+        paymentMethod: paymentMethod,
+        amountPaid: amountPaid,
+        notes: cart.some(item => item.isPlasticBag) 
+          ? `Kantong plastik: ${cart.filter(item => item.isPlasticBag).map(item => `${item.name} (${item.quantity})`).join(', ')}`
+          : null
+      }
 
-      clearCart()
+      // Send sale to backend
+      const response = await createSale(saleData)
+      
+      if (response.success) {
+        console.log('Sale created successfully:', response.data)
+        
+        // Print receipt
+        try {
+          const receiptData = {
+            saleNumber: response.data.saleNumber,
+            items: cart.map(item => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price
+            })),
+            subtotal: subtotal,
+            discount: discountAmount,
+            tax: tax,
+            total: total,
+            paymentMethod: paymentMethod,
+            amountPaid: amountPaid,
+            change: amountPaid - total,
+            cashier: currentUser?.name || 'Unknown'
+          }
+          
+          await window.electronAPI.printReceipt(receiptData)
+          console.log('Receipt printed')
+        } catch (printError) {
+          console.error('Error printing receipt:', printError)
+          // Don't fail the whole transaction if printing fails
+        }
+        
+        // Update local stock
+        const updatedProducts = [...products]
+        cart.forEach(cartItem => {
+          if (!cartItem.isPlasticBag) {
+            const productIndex = updatedProducts.findIndex(p => p.id === cartItem.id)
+            if (productIndex >= 0) {
+              updatedProducts[productIndex].stock -= cartItem.quantity
+            }
+          }
+        })
+        setProducts(updatedProducts)
+        
+        // Clear cart
+        clearCart()
+      } else {
+        throw new Error(response.message || 'Failed to create sale')
+      }
     } catch (error) {
-      alert('Error processing sale: ' + error.message)
+      console.error('Error processing sale:', error)
+      alert('Error memproses transaksi: ' + error.message)
     }
   }
 
@@ -338,11 +409,8 @@ function App() {
     return price.toLocaleString('id-ID')
   }
 
-  const saveSettings = async (config) => {
-    await window.electronAPI.setApiConfig(config)
-    setApiConfig(config)
+  const closeSettings = () => {
     setShowSettings(false)
-    alert('Settings saved successfully!')
   }
 
   const handleLoginSuccess = (user, token) => {
@@ -396,6 +464,7 @@ function App() {
             formatPrice={formatPrice}
             isCollapsed={isProductListCollapsed}
             onToggleCollapse={() => setIsProductListCollapsed(!isProductListCollapsed)}
+            isLoading={isLoadingProducts}
           />
           
           <CartItems
@@ -429,9 +498,7 @@ function App() {
 
       {showSettings && (
         <SettingsModal
-          config={apiConfig}
-          onSave={saveSettings}
-          onClose={() => setShowSettings(false)}
+          onClose={closeSettings}
         />
       )}
     </div>

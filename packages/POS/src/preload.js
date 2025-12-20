@@ -26,5 +26,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Remove listeners
   removeListener: (channel, callback) => {
     ipcRenderer.removeListener(channel, callback);
-  }
+  },
+  
+  // USB Device Management
+  getUsbDevices: () => ipcRenderer.invoke('get-usb-devices'),
+  getDeviceConfig: () => ipcRenderer.invoke('get-device-config'),
+  setDeviceConfig: (config) => ipcRenderer.invoke('set-device-config', config),
+  
+  // Barcode Scanner
+  onBarcodeScanned: (callback) => {
+    ipcRenderer.on('barcode-scanned', (event, barcode) => callback(barcode));
+  },
+  
+  // Receipt Printer
+  printReceipt: (saleData) => ipcRenderer.invoke('print-receipt', saleData),
+  testPrint: () => ipcRenderer.invoke('test-print')
 });
