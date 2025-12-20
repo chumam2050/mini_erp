@@ -20,10 +20,11 @@ function createWindow() {
     minWidth: 1024,
     minHeight: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, '../preload/index.mjs'),
       nodeIntegration: false,
       contextIsolation: true,
-      enableRemoteModule: false
+      enableRemoteModule: false,
+      sandbox: false
     },
     icon: path.join(__dirname, '../assets/icon.png'),
     title: 'Mini ERP - Point of Sales',

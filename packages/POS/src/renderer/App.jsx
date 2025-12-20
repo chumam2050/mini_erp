@@ -123,15 +123,60 @@ function App() {
       alert('Mini ERP - Point of Sales\nSupermarket Sejahtera\n\nA desktop POS application built with Electron')
     })
 
-    // Barcode scanner listener
-    window.electronAPI.onBarcodeScanned((barcode) => {
-      console.log('Barcode scanned from device:', barcode)
-      handleBarcodeInput(barcode)
-    })
+    // Focus barcode input on load
+    setTimeout(() => {
+      barcodeInputRef.current?.focus()
+    }, 100)
 
-    // Focus barcode input
-    barcodeInputRef.current?.focus()
-  }, [])
+    // Global keyboard handler for barcode scanner
+    let scannerBuffer = ''
+    let scannerTimeout = null
+    
+    const handleKeyDown = (e) => {
+      // Don't interfere with typing in the barcode input itself
+      if (e.target === barcodeInputRef.current) {
+        return
+      }
+      
+      // Ignore if typing in other inputs/textareas
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') {
+        return
+      }
+      
+      // If not focused on barcode input and it's a printable character, focus the input
+      if (e.key.length === 1 && barcodeInputRef.current) {
+        barcodeInputRef.current.focus()
+        // Don't prevent default - let the character go through to the input
+      }
+    }
+
+    // Re-focus barcode input when clicking anywhere in the app (except inputs/buttons)
+    const handleGlobalClick = (e) => {
+      // Don't refocus if clicking on input, button, or interactive elements
+      const target = e.target
+      const isInteractive = target.tagName === 'INPUT' || 
+                           target.tagName === 'BUTTON' || 
+                           target.tagName === 'TEXTAREA' ||
+                           target.closest('button') ||
+                           target.closest('input') ||
+                           target.closest('[role="button"]')
+      
+      if (!isInteractive && barcodeInputRef.current) {
+        setTimeout(() => {
+          barcodeInputRef.current?.focus()
+        }, 50)
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('click', handleGlobalClick)
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('click', handleGlobalClick)
+      if (scannerTimeout) clearTimeout(scannerTimeout)
+    }
+  }, [isLoggedIn])
 
   // Save cart whenever it changes
   useEffect(() => {
@@ -139,15 +184,36 @@ function App() {
   }, [cart])
 
   const handleBarcodeInput = (barcode) => {
-    if (!barcode) return
+    console.log('handleBarcodeInput called with:', barcode)
+    
+    if (!barcode) {
+      console.log('Barcode is empty, returning')
+      return
+    }
 
-    const product = products.find(p => p.barcode === barcode)
+    console.log('Searching in products:', products.length, 'products')
+    const product = products.find(p => {
+      const found = p.barcode === barcode || p.sku === barcode
+      if (found) console.log('Product found:', p)
+      return found
+    })
     
     if (product) {
+      console.log('Adding product to cart:', product.name)
       addToCart(product.id)
+      // Refocus after adding to cart
+      setTimeout(() => {
+        barcodeInputRef.current?.focus()
+      }, 100)
       return true
     } else {
+      console.log('Product not found for barcode:', barcode)
+      console.log('Available SKUs:', products.map(p => p.sku || p.barcode).join(', '))
       alert('Produk tidak ditemukan!')
+      // Refocus after alert
+      setTimeout(() => {
+        barcodeInputRef.current?.focus()
+      }, 100)
       return false
     }
   }

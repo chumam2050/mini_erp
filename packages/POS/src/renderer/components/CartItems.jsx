@@ -1,38 +1,68 @@
 import { useState } from 'react'
-import { Search, Plus, Minus } from 'lucide-react'
+import { Search, Plus, Minus, ScanBarcode } from 'lucide-react'
 import { Card } from './ui/card'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 
 function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barcodeInputRef, formatPrice, onIncrementQuantity, onDecrementQuantity }) {
   const [barcodeValue, setBarcodeValue] = useState('')
+  const [isFocused, setIsFocused] = useState(true)
 
   const handleSearch = () => {
-    if (onBarcodeInput(barcodeValue)) {
-      setBarcodeValue('')
-      barcodeInputRef.current?.focus()
+    console.log('Searching barcode:', barcodeValue)
+    if (barcodeValue.trim()) {
+      if (onBarcodeInput(barcodeValue.trim())) {
+        setBarcodeValue('')
+      }
+      // Always refocus after search attempt
+      setTimeout(() => {
+        barcodeInputRef.current?.focus()
+      }, 50)
     }
   }
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
+      e.preventDefault()
       handleSearch()
     }
   }
 
+  const handleChange = (e) => {
+    const value = e.target.value
+    console.log('Barcode input changed:', value)
+    setBarcodeValue(value)
+  }
+
   return (
     <Card className="flex flex-col h-full overflow-hidden">
-      <div className="flex gap-3 p-5 border-b">
-        <Input
-          ref={barcodeInputRef}
-          type="text"
-          placeholder="[ Input Barcode Manual... ]"
-          value={barcodeValue}
-          onChange={(e) => setBarcodeValue(e.target.value)}
-          onKeyPress={handleKeyPress}
-          className="flex-1 h-12 font-mono text-base"
-          autoFocus
-        />
+      <div className="flex gap-3 p-5 border-b bg-muted/30">
+        <div className="relative flex-1">
+          <Input
+            ref={barcodeInputRef}
+            type="text"
+            placeholder="Scan barcode atau ketik manual..."
+            value={barcodeValue}
+            onChange={handleChange}
+            onKeyDown={handleKeyPress}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            className={`h-12 font-mono text-base pr-12 ${
+              isFocused ? 'ring-2 ring-green-500 border-green-500' : ''
+            }`}
+            autoFocus
+          />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {isFocused ? (
+              <div className="flex items-center gap-1.5 text-green-600">
+                <ScanBarcode className="h-4 w-4 animate-pulse" />
+                <span className="text-xs font-medium">Siap Scan</span>
+              </div>
+            ) : (
+              <ScanBarcode className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        </div>
         <Button 
           onClick={handleSearch}
           className="px-8 h-12 text-base font-semibold"

@@ -9,30 +9,24 @@ const Settings = sequelize.define('Settings', {
   },
   key: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-    comment: 'Setting key identifier'
+    allowNull: false
   },
   value: {
     type: DataTypes.TEXT,
-    allowNull: false,
-    comment: 'Setting value (can be JSON string)'
+    allowNull: false
   },
   type: {
     type: DataTypes.ENUM('string', 'number', 'boolean', 'json'),
-    defaultValue: 'string',
-    comment: 'Data type of the value'
+    defaultValue: 'string'
   },
   description: {
     type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Description of the setting'
+    allowNull: true
   },
   category: {
     type: DataTypes.STRING,
     allowNull: true,
-    defaultValue: 'general',
-    comment: 'Category grouping for settings'
+    defaultValue: 'general'
   }
 }, {
   tableName: 'settings',

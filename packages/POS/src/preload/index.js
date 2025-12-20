@@ -26,5 +26,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Remove listeners
   removeListener: (channel, callback) => {
     ipcRenderer.removeListener(channel, callback)
-  }
+  },
+
+  // Printer Management
+  getPrinters: () => ipcRenderer.invoke('get-printers'),
+  getDeviceConfig: () => ipcRenderer.invoke('get-device-config'),
+  setDeviceConfig: (config) => ipcRenderer.invoke('set-device-config', config),
+  
+  // Receipt Printer
+  printReceipt: (saleData) => ipcRenderer.invoke('print-receipt', saleData),
+  testPrint: () => ipcRenderer.invoke('test-print')
 })
