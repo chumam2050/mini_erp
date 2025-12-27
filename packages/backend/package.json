@@ -9,6 +9,7 @@
         "dev": "nodemon src/server.js",
         "start": "node src/server.js",
         "seed": "node src/seeders/seed.js",
+        "truncate": "node src/scripts/truncate.js",
         "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --forceExit",
         "test:watch": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --watch",
         "test:coverage": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --coverage --detectOpenHandles --forceExit",

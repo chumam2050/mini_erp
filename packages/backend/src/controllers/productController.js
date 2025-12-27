@@ -1,4 +1,5 @@
 import Product from '../models/Product.js'
+import sequelize, { Op } from '../config/database.js'
 import path from 'path'
 import { generateBarcodePDF, generateBatchBarcodePDF, generateBarcodeLabelsPDF } from '../utils/barcodeGenerator.js'
 import { generateSimpleProductLabel, generateThermalLabels, generateLargeBarcodeForScanning } from '../utils/thermalLabelGenerator.js'
@@ -472,10 +473,16 @@ export const importProductsCSV = async (req, res) => {
         }
 
         const results = { processed: 0, created: 0, updated: 0, errors: [] }
-
+        // console.log('Row data keys:', records);
+        // return res.json({ message: 'Debug', keys: records.length > 0 ? records[1] : [] })
         for (let i = 0; i < records.length; i++) {
-            const row = records[i]
             const rowNum = i + 2 // account for header row
+            const startIndex = i + 1
+            
+            if (startIndex > records.length - 1) {
+                break
+            }
+            const row = records[startIndex]
 
             const sku = (row['kode_barang_update'] || row['sku'] || '').toString().trim()
             const name = (row['nama_barang_update'] || row['name'] || '').toString().trim()
@@ -489,17 +496,53 @@ export const importProductsCSV = async (req, res) => {
                 continue
             }
 
-            const product = await Product.findOne({ where: { sku } })
+            let product = await Product.findOne({ where: { sku } })
+
+            // Fallback heuristics when SKU from Excel lost leading zeros or is numeric
+            if (!product && sku && /^\d+$/.test(sku)) {
+                // Find candidates that contain the sku string (e.g. '001' may become '1' in Excel)
+                const candidates = await Product.findAll({ where: { sku: { [Op.like]: `%${sku}` } }, limit: 10 })
+                const matched = candidates.find(c => String(c.sku).replace(/^0+/, '') === String(sku).replace(/^0+/, ''))
+                if (matched) {
+                    product = matched
+                    console.log(`Matched SKU via leading-zero heuristic: row ${rowNum}, incoming ${sku}, matched ${product.sku}`)
+                }
+            }
+
+            // Fallback: try to match by name (case-insensitive)
+            if (!product && name) {
+                try {
+                    const matchedByName = await Product.findOne({
+                        where: sequelize.where(sequelize.fn('LOWER', sequelize.col('name')), name.toLowerCase())
+                    })
+                    if (matchedByName) {
+                        product = matchedByName
+                        console.log(`Matched by name: row ${rowNum}, incoming name "${name}", matched SKU ${product.sku}`)
+                    }
+                } catch (e) {
+                    // ignore name match errors
+                }
+            }
 
             if (product) {
                 // Update
-                if (stokTambahan !== undefined && stokTambahan !== '') {
-                    const delta = parseInt(String(stokTambahan).replace(/[^-0-9]/g, ''), 10)
-                    if (Number.isNaN(delta)) {
-                        results.errors.push({ row: rowNum, message: 'Invalid stok_tambahan_update' })
+                if (stokTambahan !== undefined && String(stokTambahan).trim() !== '') {
+                    // Robust parsing for stok_tambahan_update
+                    let raw = String(stokTambahan).trim()
+                    // Handle parentheses as negative numbers e.g. (10) -> -10
+                    const negativeParens = /^\((.*)\)$/.exec(raw)
+                    if (negativeParens) raw = '-' + negativeParens[1]
+                    // Remove spaces, replace comma with dot to accept decimal/comma formats
+                    raw = raw.replace(/\s+/g, '').replace(/,/g, '.')
+                    const num = Number(raw)
+                    if (!Number.isFinite(num) || Number.isNaN(num)) {
+                        results.errors.push({ row: rowNum, message: `Invalid stok_tambahan_update: ${String(stokTambahan)}` })
                         continue
                     }
-                    product.stock = (product.stock || 0) + delta
+                    const delta = Math.round(num)
+                    const oldStock = product.stock || 0
+                    product.stock = oldStock + delta
+                    console.log(`Row ${rowNum}: SKU ${product.sku} stock ${oldStock} -> ${product.stock}`)
                 }
 
                 if (minStock !== undefined && minStock !== '') {
@@ -525,12 +568,18 @@ export const importProductsCSV = async (req, res) => {
             } else {
                 // Create (best-effort)
                 let stock = 0
-                if (stokTambahan !== undefined && stokTambahan !== '') {
-                    const s = parseInt(String(stokTambahan).replace(/[^-0-9]/g, ''), 10)
-                    stock = Number.isNaN(s) ? 0 : s
-                } else if (stokSekarang !== undefined && stokSekarang !== '') {
-                    const s2 = parseInt(String(stokSekarang).replace(/[^0-9]/g, ''), 10)
-                    stock = Number.isNaN(s2) ? 0 : s2
+                if (stokTambahan !== undefined && String(stokTambahan).trim() !== '') {
+                    let raw = String(stokTambahan).trim()
+                    const negativeParens = /^\((.*)\)$/.exec(raw)
+                    if (negativeParens) raw = '-' + negativeParens[1]
+                    raw = raw.replace(/\s+/g, '').replace(/,/g, '.')
+                    const num = Number(raw)
+                    stock = (!Number.isFinite(num) || Number.isNaN(num)) ? 0 : Math.round(num)
+                } else if (stokSekarang !== undefined && String(stokSekarang).trim() !== '') {
+                    let raw2 = String(stokSekarang).trim()
+                    raw2 = raw2.replace(/\s+/g, '').replace(/,/g, '.')
+                    const num2 = Number(raw2)
+                    stock = (!Number.isFinite(num2) || Number.isNaN(num2)) ? 0 : Math.round(num2)
                 }
 
                 let min = 0
@@ -550,15 +599,14 @@ export const importProductsCSV = async (req, res) => {
                     name: name || sku,
                     category: 'Uncategorized',
                     price: pr,
-                    stock,
+                    stock: stokSekarang,
                     minStock: min
                 })
 
                 results.created++
             }
 
-            results.processed++
-        }
+            results.processed++        }
 
         res.json(results)
     } catch (error) {

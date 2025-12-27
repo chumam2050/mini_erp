@@ -20,7 +20,8 @@
         "test:backend": "lerna run test --scope=@minierp/backend",
         "test:watch": "lerna run test:watch --parallel",
         "seed": "lerna run seed",
-        "seed:backend": "lerna run seed --scope=@minierp/backend"
+        "seed:backend": "lerna run seed --scope=@minierp/backend",
+        "truncate:backend": "lerna run truncate --scope=@minierp/backend"
     },
     "devDependencies": {
         "autoprefixer": "^10.4.23",
