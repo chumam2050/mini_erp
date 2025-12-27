@@ -50,7 +50,7 @@ export async function logout() {
   try {
     const token = await getAuthToken()
     const apiConfig = await window.electronAPI.getApiConfig()
-    const baseUrl = apiConfig?.baseUrl || 'http://localhost:5000'
+    const baseUrl = apiConfig?.baseUrl
 
     // Call logout endpoint if token exists
     if (token) {
@@ -85,7 +85,7 @@ export async function logout() {
 export async function authenticatedFetch(endpoint, options = {}) {
   const token = await getAuthToken()
   const apiConfig = await window.electronAPI.getApiConfig()
-  const baseUrl = apiConfig?.baseUrl || 'http://localhost:5000'
+  const baseUrl = apiConfig?.baseUrl
 
   const headers = {
     'Content-Type': 'application/json',

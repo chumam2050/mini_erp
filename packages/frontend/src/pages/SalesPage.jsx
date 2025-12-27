@@ -8,6 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog'
 
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0)
+}
+
 const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
   if (!sale) return null
 
@@ -22,19 +26,19 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
           {/* Sale Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-gray-500">Sale Number</label>
+              <label className="text-sm font-medium text-muted-foreground">Sale Number</label>
               <p className="font-mono">{sale.saleNumber}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Date</label>
+              <label className="text-sm font-medium text-muted-foreground">Date</label>
               <p>{new Date(sale.saleDate).toLocaleString()}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Cashier</label>
+              <label className="text-sm font-medium text-muted-foreground">Cashier</label>
               <p>{sale.cashier?.name}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-gray-500">Payment Method</label>
+              <label className="text-sm font-medium text-muted-foreground">Payment Method</label>
               <Badge variant="outline">{sale.paymentMethod.replace('_', ' ')}</Badge>
             </div>
           </div>
@@ -46,19 +50,19 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
               <div className="grid grid-cols-2 gap-4">
                 {sale.customerName && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Name</label>
+                    <label className="text-sm font-medium text-muted-foreground">Name</label>
                     <p>{sale.customerName}</p>
                   </div>
                 )}
                 {sale.customerPhone && (
                   <div>
-                    <label className="text-sm font-medium text-gray-500">Phone</label>
+                    <label className="text-sm font-medium text-muted-foreground">Phone</label>
                     <p>{sale.customerPhone}</p>
                   </div>
                 )}
                 {sale.customerEmail && (
                   <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-500">Email</label>
+                    <label className="text-sm font-medium text-muted-foreground">Email</label>
                     <p>{sale.customerEmail}</p>
                   </div>
                 )}
@@ -74,11 +78,11 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
                 <div key={index} className="flex justify-between items-center p-3 border rounded">
                   <div>
                     <p className="font-medium">{item.productName}</p>
-                    <p className="text-sm text-gray-500">{item.productSku}</p>
+                    <p className="text-sm text-muted-foreground">{item.productSku}</p>
                   </div>
                   <div className="text-right">
-                    <p>{item.quantity} × ${parseFloat(item.unitPrice).toFixed(2)}</p>
-                    <p className="font-medium">${parseFloat(item.subtotal).toFixed(2)}</p>
+                    <p>{item.quantity} × {formatCurrency(parseFloat(item.unitPrice))}</p>
+                    <p className="font-medium">{formatCurrency(parseFloat(item.subtotal))}</p>
                   </div>
                 </div>
               ))}
@@ -89,44 +93,44 @@ const SaleDetailsModal = ({ sale, isOpen, onClose }) => {
           <div className="space-y-2 pt-4 border-t">
             <div className="flex justify-between">
               <span>Subtotal:</span>
-              <span>${parseFloat(sale.subtotal).toFixed(2)}</span>
+              <span>{formatCurrency(parseFloat(sale.subtotal))}</span>
             </div>
             
             {parseFloat(sale.discount) > 0 && (
               <div className="flex justify-between text-red-600">
                 <span>Discount:</span>
-                <span>-${parseFloat(sale.discount).toFixed(2)}</span>
+                <span>-{formatCurrency(parseFloat(sale.discount))}</span>
               </div>
             )}
             
             {parseFloat(sale.tax) > 0 && (
               <div className="flex justify-between">
                 <span>Tax ({sale.taxRate}%):</span>
-                <span>${parseFloat(sale.tax).toFixed(2)}</span>
+                <span>{formatCurrency(parseFloat(sale.tax))}</span>
               </div>
             )}
             
             <div className="flex justify-between font-bold text-lg pt-2 border-t">
               <span>Total:</span>
-              <span>${parseFloat(sale.total).toFixed(2)}</span>
+              <span>{formatCurrency(parseFloat(sale.total))}</span>
             </div>
 
             <div className="flex justify-between">
               <span>Amount Paid:</span>
-              <span>${parseFloat(sale.amountPaid).toFixed(2)}</span>
+              <span>{formatCurrency(parseFloat(sale.amountPaid))}</span>
             </div>
 
             {parseFloat(sale.change) > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Change:</span>
-                <span>${parseFloat(sale.change).toFixed(2)}</span>
+                <span>{formatCurrency(parseFloat(sale.change))}</span>
               </div>
             )}
           </div>
 
           {sale.notes && (
             <div>
-              <label className="text-sm font-medium text-gray-500">Notes</label>
+              <label className="text-sm font-medium text-muted-foreground">Notes</label>
               <p className="mt-1">{sale.notes}</p>
             </div>
           )}
@@ -151,6 +155,10 @@ const SalesPage = () => {
     limit: 10
   })
   const [pagination, setPagination] = useState({})
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount || 0)
+  }
 
   useEffect(() => {
     fetchSales()
@@ -228,13 +236,13 @@ const SalesPage = () => {
     }
   }
 
-  const getStatusColor = (status) => {
+  const getStatusVariant = (status) => {
     switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      case 'refunded': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'completed': return 'default'
+      case 'pending': return 'secondary'
+      case 'cancelled': return 'destructive'
+      case 'refunded': return 'outline'
+      default: return 'default'
     }
   }
 
@@ -249,7 +257,7 @@ const SalesPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Navbar />
       
       <div className="container mx-auto px-4 py-6">
@@ -265,8 +273,8 @@ const SalesPage = () => {
                 <div className="flex items-center">
                   <DollarSign className="h-8 w-8 text-green-600" />
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-500">Today's Revenue</p>
-                    <p className="text-xl font-bold">${parseFloat(summary.totalRevenue || 0).toFixed(2)}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Today's Revenue</p>
+                    <p className="text-xl font-bold">{formatCurrency(summary.totalRevenue || 0)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -277,7 +285,7 @@ const SalesPage = () => {
                 <div className="flex items-center">
                   <CreditCard className="h-8 w-8 text-blue-600" />
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-500">Total Sales</p>
+                    <p className="text-sm font-medium text-muted-foreground">Total Sales</p>
                     <p className="text-xl font-bold">{summary.totalSales || 0}</p>
                   </div>
                 </div>
@@ -289,8 +297,8 @@ const SalesPage = () => {
                 <div className="flex items-center">
                   <Calendar className="h-8 w-8 text-purple-600" />
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-500">Average Sale</p>
-                    <p className="text-xl font-bold">${parseFloat(summary.averageSale || 0).toFixed(2)}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Average Sale</p>
+                    <p className="text-xl font-bold">{formatCurrency(summary.averageSale || 0)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -301,8 +309,8 @@ const SalesPage = () => {
                 <div className="flex items-center">
                   <DollarSign className="h-8 w-8 text-orange-600" />
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-500">Tax Collected</p>
-                    <p className="text-xl font-bold">${parseFloat(summary.totalTax || 0).toFixed(2)}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Tax Collected</p>
+                    <p className="text-xl font-bold">{formatCurrency(summary.totalTax || 0)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -337,7 +345,7 @@ const SalesPage = () => {
               <select
                 value={filters.status}
                 onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value, page: 1 }))}
-                className="px-3 py-2 border rounded-md"
+                className="px-3 py-2 border rounded-md bg-card text-card-foreground"
               >
                 <option value="">All Status</option>
                 <option value="completed">Completed</option>
@@ -355,44 +363,44 @@ const SalesPage = () => {
             {isLoading ? (
               <div className="p-8 text-center">Loading...</div>
             ) : sales.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">No sales found</div>
+              <div className="p-8 text-center text-muted-foreground">No sales found</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
+                  <thead className="bg-muted/5 border-b">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                         Sale #
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                         Date
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                         Customer
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                         Cashier
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                         Items
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                         Payment
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                         Total
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-background divide-y divide-muted/10">
                     {sales.map((sale) => (
-                      <tr key={sale.id} className="hover:bg-gray-50">
+                      <tr key={sale.id} className="hover:bg-muted/5">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="font-mono text-sm">{sale.saleNumber}</span>
                         </td>
@@ -417,10 +425,10 @@ const SalesPage = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          ${parseFloat(sale.total).toFixed(2)}
+                          {formatCurrency(parseFloat(sale.total))}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge className={getStatusColor(sale.status)}>
+                          <Badge variant={getStatusVariant(sale.status)}>
                             {sale.status}
                           </Badge>
                         </td>
@@ -444,7 +452,7 @@ const SalesPage = () => {
             {pagination.pages > 1 && (
               <div className="px-6 py-4 border-t">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-muted-foreground">
                     Page {pagination.page} of {pagination.pages} ({pagination.total} total)
                   </span>
                   <div className="flex gap-2">

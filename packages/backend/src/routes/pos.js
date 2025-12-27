@@ -5,7 +5,8 @@ import {
     createSale,
     cancelSale,
     getSalesSummary,
-    getProductsForPOS
+    getProductsForPOS,
+    getTopProducts
 } from '../controllers/posController.js'
 import { authenticateToken } from '../middleware/auth.js'
 
@@ -192,6 +193,32 @@ router.get('/sales', getAllSales)
  *               $ref: '#/components/schemas/POSErrorResponse'
  */
 router.get('/sales/summary', getSalesSummary)
+
+/**
+ * @swagger
+ * /api/pos/sales/top-products:
+ *   get:
+ *     summary: Get top selling products
+ *     tags: [POS]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [today, week, month]
+ *           default: month
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *     responses:
+ *       200:
+ *         description: Top products retrieved successfully
+ */
+router.get('/sales/top-products', getTopProducts)
 
 /**
  * @swagger

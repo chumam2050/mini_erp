@@ -2,51 +2,48 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import Navbar from '@/components/Navbar'
-import { Users, Activity, TrendingUp, Package, Mail, Shield } from 'lucide-react'
+import { Activity, TrendingUp, Package, BarChart2 } from 'lucide-react'
 
 export default function DashboardPage() {
-  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [user, setUser] = useState(null)
-  const navigate = useNavigate()
+  const [summary, setSummary] = useState(null)
+  const [topProducts, setTopProducts] = useState([])
+  const [paymentMethods, setPaymentMethods] = useState([])
+  const [period, setPeriod] = useState('month')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
-    const userData = localStorage.getItem('user')
-    
-    if (!token || !userData) {
-      return
-    }
+    if (!token) return
 
-    setUser(JSON.parse(userData))
-
-    // Fetch users
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
-        const response = await axios.get('/api/users', {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        })
-        setUsers(response.data)
+        const [sResp, tResp] = await Promise.all([
+          axios.get(`/api/pos/sales/summary?period=${period}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`/api/pos/sales/top-products?period=${period}&limit=5`, { headers: { Authorization: `Bearer ${token}` } })
+        ])
+
+        if (sResp.data?.success) {
+          setSummary(sResp.data.data.summary)
+          setPaymentMethods(sResp.data.data.paymentMethods || [])
+        }
+        if (tResp.data?.success) setTopProducts(tResp.data.data.top)
+
         setError(null)
       } catch (err) {
-        setError('Gagal mengambil data pengguna')
-        console.error('Error fetching users:', err)
+        console.error('Error fetching dashboard data:', err)
+        setError('Gagal memuat data dashboard')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchUsers()
-  }, [navigate])
+    fetchData()
+  }, [period])
 
   const handleLogout = () => {
     localStorage.removeItem('token')
@@ -62,6 +59,15 @@ export default function DashboardPage() {
     )
   }
 
+  const formatCurrency = (v) => {
+    if (!v) return 'Rp 0'
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v)
+  }
+
+  const totalSales = summary?.totalSales || 0
+  const totalRevenue = summary?.totalRevenue || 0
+  const averageSale = summary?.averageSale || 0
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -71,136 +77,143 @@ export default function DashboardPage() {
         {/* Stats Cards */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
-              <p className="text-xs text-muted-foreground">
-                Pengguna terdaftar
-              </p>
+            <CardContent className="p-4 rounded-lg bg-card text-card-foreground">
+              <div className="flex items-center">
+                <Activity className="h-8 w-8 text-chart-2" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Total Penjualan</p>
+                  <div className="text-2xl font-bold">{totalSales}</div>
+                  <p className="text-xs text-muted-foreground">Penjualan selesai ({period})</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Now</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">
-                Pengguna aktif
-              </p>
+            <CardContent className="p-4 rounded-lg bg-card text-card-foreground">
+              <div className="flex items-center">
+                <TrendingUp className="h-8 w-8 text-chart-3" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Pendapatan</p>
+                  <div className="text-2xl font-bold">{formatCurrency(totalRevenue)}</div>
+                  <p className="text-xs text-muted-foreground">Total pendapatan ({period})</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">$12,345</div>
-              <p className="text-xs text-muted-foreground">
-                +20% dari bulan lalu
-              </p>
+            <CardContent className="p-4 rounded-lg bg-card text-card-foreground">
+              <div className="flex items-center">
+                <BarChart2 className="h-8 w-8 text-chart-4" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Rata-rata Per Transaksi</p>
+                  <div className="text-2xl font-bold">{formatCurrency(averageSale)}</div>
+                  <p className="text-xs text-muted-foreground">Rata-rata nilai transaksi</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Products</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">245</div>
-              <p className="text-xs text-muted-foreground">
-                Produk tersedia
-              </p>
+            <CardContent className="p-4 rounded-lg bg-card text-card-foreground">
+              <div className="flex items-center">
+                <Package className="h-8 w-8 text-chart-5" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Top Produk</p>
+                  <div className="text-2xl font-bold">{topProducts.length}</div>
+                  <p className="text-xs text-muted-foreground">Produk terlaris ({period})</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Users List */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Daftar Pengguna</CardTitle>
-                <CardDescription>
-                  Kelola semua pengguna dalam sistem
-                </CardDescription>
+        {/* Filter bar */}
+        <Card className="mb-6">
+          <CardContent className="p-4 rounded-lg bg-card">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Input placeholder="Search products or SKU..." />
+              <div />
+              <div className="flex items-center justify-end">
+                <select value={period} onChange={(e) => setPeriod(e.target.value)} className="px-3 py-2 border rounded-md bg-card text-card-foreground">
+                  <option value="today">Hari ini</option>
+                  <option value="week">Minggu</option>
+                  <option value="month">Bulan</option>
+                  <option value="all">Semua</option>
+                </select>
               </div>
-              <Button size="sm">
-                <Users className="mr-2 h-4 w-4" />
-                Tambah User
-              </Button>
             </div>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md mb-4">
-                {error}
-              </div>
-            )}
-            
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pengguna</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Dibuat</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                            {user.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{user.name}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Mail className="mr-2 h-4 w-4" />
-                        {user.email}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.role === 'Administrator' ? 'default' : 'secondary'}>
-                        <Shield className="mr-1 h-3 w-3" />
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(user.createdAt).toLocaleDateString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric'
-                      })}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="sm">
-                        Edit
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </CardContent>
         </Card>
+
+        {/* Charts / Top products list */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Top Produk Terjual</CardTitle>
+                  <CardDescription>Lihat produk yang paling banyak terjual</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select value={period} onChange={(e) => setPeriod(e.target.value)} className="border rounded px-2 py-1 text-sm">
+                    <option value="today">Hari ini</option>
+                    <option value="week">Minggu</option>
+                    <option value="month">Bulan</option>
+                    <option value="all">Semua</option>
+                  </select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {topProducts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Tidak ada data penjualan</p>
+              ) : (
+                <ul className="space-y-3">
+                  {topProducts.map((p, i) => (
+                    <li key={p.productId} className="flex items-center gap-4">
+                      <div className="w-8 text-sm font-medium">{i + 1}</div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">{p.name || p.sku || 'Unknown'}</div>
+                        <div className="text-xs text-muted-foreground">SKU: {p.sku || '-'}</div>
+                      </div>
+                      <div className="w-48">
+                        <div className="h-2 bg-muted rounded overflow-hidden">
+                          <div className="h-2 bg-primary" style={{ width: `${Math.min(100, (p.totalSold / (topProducts[0]?.totalSold || 1)) * 100)}%` }} />
+                        </div>
+                        <div className="text-sm text-right">{p.totalSold} terjual</div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div>
+                <CardTitle>Sales Breakdown</CardTitle>
+                <CardDescription>Metode pembayaran dan ringkasan</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {paymentMethods.length === 0 ? (
+                <div className="text-sm text-muted-foreground">Tidak ada data metode pembayaran</div>
+              ) : (
+                <ul className="space-y-2">
+                  {paymentMethods.map(pm => (
+                    <li key={pm.paymentMethod} className="flex items-center justify-between">
+                      <div className="text-sm">{pm.paymentMethod}</div>
+                      <div className="text-sm font-medium">{formatCurrency(pm.total)} ({pm.count})</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </main>
     </div>
   )

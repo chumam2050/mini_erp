@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, Plus, Minus, ScanBarcode } from 'lucide-react'
+import { Search, Plus, Minus, ScanBarcode, X } from 'lucide-react'
 import { Card } from './ui/card'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
@@ -7,13 +7,27 @@ import { Button } from './ui/button'
 function CartItems({ className, cart, selectedItemIndex, onSelectItem, onBarcodeInput, barcodeInputRef, formatPrice, onIncrementQuantity, onDecrementQuantity }) {
   const [barcodeValue, setBarcodeValue] = useState('')
   const [isFocused, setIsFocused] = useState(true)
+  const [inputHistory, setInputHistory] = useState('')
+  // Track whether the last input change came from user typing (keyboard/scan) or was programmatic/paste
+  const [lastInputWasTyped, setLastInputWasTyped] = useState(false)
 
   const handleSearch = () => {
     if (barcodeValue.trim()) {
+      // Only allow search if the last change was from typing (keyboard/scanner),
+      // prevents programmatic/appended values from triggering a search.
+      if (!lastInputWasTyped) {
+        console.log('Search prevented: barcode input was not typed by user.')
+        // Refocus so user can type or correct the value
+        barcodeInputRef.current?.focus()
+        return
+      }
+
       if (onBarcodeInput(barcodeValue.trim())) {
         setBarcodeValue('')
       }
-      // // Always refocus after search attempt
+      setLastInputWasTyped(false)
+
+      // Always refocus after search attempt
       setTimeout(() => {
         barcodeInputRef.current?.focus()
       }, 50)
@@ -31,6 +45,11 @@ function CartItems({ className, cart, selectedItemIndex, onSelectItem, onBarcode
     const value = e.target.value
     console.log('Barcode input changed:', value)
     setBarcodeValue(value)
+
+    // Detect if this change was from typing (insertText) or other sources like paste/programmatic
+    const inputType = e.nativeEvent?.inputType
+    const wasTyped = inputType === 'insertText' || inputType === 'insertCompositionText'
+    setLastInputWasTyped(Boolean(wasTyped))
   }
 
   return (
@@ -52,6 +71,21 @@ function CartItems({ className, cart, selectedItemIndex, onSelectItem, onBarcode
             autoFocus
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            {/* Clear input button (visible when there's content) */}
+            {barcodeValue ? (
+              <button
+                type="button"
+                aria-label="Clear barcode input"
+                onClick={() => {
+                  setBarcodeValue('')
+                  setLastInputWasTyped(false)
+                  barcodeInputRef.current?.focus()
+                }}
+                className="h-8 w-8 flex items-center justify-center rounded hover:bg-muted/10 text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            ) : null}
             {isFocused ? (
               <div className="flex items-center gap-1.5 text-green-600">
                 <ScanBarcode className="h-4 w-4 animate-pulse" />

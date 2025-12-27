@@ -21,7 +21,9 @@
         "test:watch": "lerna run test:watch --parallel",
         "seed": "lerna run seed",
         "seed:backend": "lerna run seed --scope=@minierp/backend",
-        "truncate:backend": "lerna run truncate --scope=@minierp/backend"
+        "truncate:backend": "lerna run truncate --scope=@minierp/backend",
+    "compose:up": "docker-compose up -d --build",
+    "compose:down": "docker-compose down --volumes"
     },
     "devDependencies": {
         "autoprefixer": "^10.4.23",

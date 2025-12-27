@@ -24,17 +24,40 @@ A modern Enterprise Resource Planning system built with a Lerna monorepo archite
 # Install all dependencies
 npm install
 
-# Start PostgreSQL database
+# Start PostgreSQL database for local development
+# (or use the docker-compose provided below for full deployment)
 docker-compose up -d
 
 # Seed database with default users
 cd packages/backend
 npm run seed
 
-# Start both frontend and backend
+# Start both frontend and backend for local dev
 cd /workspace
 npm run dev
 ```
+
+---
+
+## Docker Deployment (backend + frontend) 🚀
+
+You can run the full stack with Docker Compose. This will start a Postgres database, build and run the backend, and build and serve the frontend with nginx.
+
+```bash
+# From repository root
+npm run compose:up
+
+# Tear down and remove volumes
+npm run compose:down
+```
+
+Notes:
+- Backend environment is read from `packages/backend/.env` (DB credentials there will be overridden to use the `db` service hostname).
+- Uploaded files are persisted to `packages/backend/uploads` on the host.
+- Backend: http://localhost:5000 — API docs: http://localhost:5000/api-docs
+- Frontend: http://localhost:3000
+
+If you'd like, I can add a Makefile or a Root NPM script to run `seed` automatically after docker-compose up. Let me know which option you prefer.
 
 **Frontend:** http://localhost:5173  
 **Backend:** http://localhost:5000  

@@ -427,6 +427,10 @@ export const getSalesSummary = async (req, res) => {
                     }
                 }
                 break
+            case 'all':
+                // no date filter - include all time
+                dateFilter = {}
+                break
         }
 
         const summary = await Sale.findAll({
@@ -444,7 +448,7 @@ export const getSalesSummary = async (req, res) => {
             raw: true
         })
 
-        const paymentMethods = await Sale.findAll({
+        const paymentMethodsRaw = await Sale.findAll({
             where: {
                 ...dateFilter,
                 status: 'completed'
@@ -458,11 +462,26 @@ export const getSalesSummary = async (req, res) => {
             raw: true
         })
 
+        const paymentMethods = paymentMethodsRaw.map(pm => ({
+            paymentMethod: pm.paymentMethod,
+            count: Number(pm.count) || 0,
+            total: Number(pm.total) || 0
+        }))
+
+        const s = summary[0] || {}
+        const sanitized = {
+            totalSales: Number(s.totalSales) || 0,
+            totalRevenue: Number(s.totalRevenue) || 0,
+            totalSubtotal: Number(s.totalSubtotal) || 0,
+            totalTax: Number(s.totalTax) || 0,
+            averageSale: Number(s.averageSale) || 0
+        }
+
         res.json({
             success: true,
             data: {
                 period,
-                summary: summary[0],
+                summary: sanitized,
                 paymentMethods
             }
         })
@@ -472,6 +491,96 @@ export const getSalesSummary = async (req, res) => {
             message: 'Error fetching sales summary',
             error: error.message
         })
+    }
+}
+
+// Get top selling products in a period
+export const getTopProducts = async (req, res) => {
+    try {
+        const { period = 'month', limit = 5 } = req.query
+        const now = new Date()
+        let dateFilter = {}
+
+        switch (period) {
+            case 'today':
+                const startOfDay = new Date(now)
+                startOfDay.setHours(0, 0, 0, 0)
+                const endOfDay = new Date(now)
+                endOfDay.setHours(23, 59, 59, 999)
+                dateFilter = {
+                    saleDate: {
+                        [Op.between]: [startOfDay, endOfDay]
+                    }
+                }
+                break
+            case 'week':
+                const startOfWeek = new Date(now)
+                startOfWeek.setDate(now.getDate() - now.getDay())
+                startOfWeek.setHours(0, 0, 0, 0)
+                dateFilter = {
+                    saleDate: {
+                        [Op.gte]: startOfWeek
+                    }
+                }
+                break
+            case 'month':
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+                dateFilter = {
+                    saleDate: {
+                        [Op.gte]: startOfMonth
+                    }
+                }
+                break
+            case 'all':
+                dateFilter = {}
+                break
+        }
+
+        // Use raw SQL aggregation to avoid ORM grouping issues
+        const replacements = { limit: parseInt(limit, 10) }
+        let dateSql = ''
+        if (period === 'today') {
+            const startOfDay = new Date(now)
+            startOfDay.setHours(0, 0, 0, 0)
+            const endOfDay = new Date(now)
+            endOfDay.setHours(23, 59, 59, 999)
+            replacements.start = startOfDay.toISOString()
+            replacements.end = endOfDay.toISOString()
+            dateSql = `AND s."saleDate" BETWEEN :start AND :end`
+        } else if (period === 'week') {
+            const startOfWeek = new Date(now)
+            startOfWeek.setDate(now.getDate() - now.getDay())
+            startOfWeek.setHours(0, 0, 0, 0)
+            replacements.start = startOfWeek.toISOString()
+            dateSql = `AND s."saleDate" >= :start`
+        } else if (period === 'month') {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+            replacements.start = startOfMonth.toISOString()
+            dateSql = `AND s."saleDate" >= :start`
+        } // 'all' -> no date filter
+
+        const sql = `SELECT si."productId", p.name, p.sku, SUM(si.quantity) as "totalSold"
+            FROM sale_items si
+            JOIN sales s ON s.id = si."saleId"
+            JOIN products p ON p.id = si."productId"
+            WHERE s.status = 'completed' ${dateSql}
+            GROUP BY si."productId", p.name, p.sku
+            ORDER BY "totalSold" DESC
+            LIMIT :limit`
+
+        const [rows] = await sequelize.query(sql, { replacements })
+
+        const top = rows.map(r => ({
+            productId: r.productId,
+            name: r.name,
+            sku: r.sku,
+            totalSold: Number(r.totalSold)
+        }))
+
+        res.json({ success: true, data: { period, top } })
+    } catch (error) {
+        console.error('Error fetching top products:', error)
+        res.status(500).json({ success: false, message: 'Error fetching top products', error: error.message })
     }
 }
 

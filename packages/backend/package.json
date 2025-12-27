@@ -10,6 +10,7 @@
         "start": "node src/server.js",
         "seed": "node src/seeders/seed.js",
         "truncate": "node src/scripts/truncate.js",
+        "seed:sales": "node src/scripts/seedSampleSales.js",
         "test": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --forceExit",
         "test:watch": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --watch",
         "test:coverage": "NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --coverage --detectOpenHandles --forceExit",
@@ -20,7 +21,9 @@
         "generate:barcodes:thermal": "node src/scripts/generateAllBarcodes.js thermal",
         "generate:barcodes:large": "node src/scripts/generateAllBarcodes.js large",
         "generate:barcodes:simple": "node src/scripts/generateAllBarcodes.js simple",
-        "generate:barcodes:category": "node src/scripts/generateAllBarcodes.js category"
+        "generate:barcodes:category": "node src/scripts/generateAllBarcodes.js category",
+        "create:user": "node src/scripts/createUser.js",
+        "generate:jwt-secret": "node src/scripts/generateJwtSecret.js"
     },
     "dependencies": {
         "bcryptjs": "^3.0.3",

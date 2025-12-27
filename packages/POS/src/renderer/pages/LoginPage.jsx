@@ -19,7 +19,7 @@ export default function LoginPage({ onLoginSuccess }) {
     try {
       // Get API config from electron store
       const apiConfig = await window.electronAPI.getApiConfig()
-      const baseUrl = apiConfig?.baseUrl || 'http://localhost:5000'
+      const baseUrl = apiConfig?.baseUrl
 
       // Make login request
       const response = await fetch(`${baseUrl}/api/auth/login`, {

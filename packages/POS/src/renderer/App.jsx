@@ -15,7 +15,7 @@ function App() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
   const [selectedItemIndex, setSelectedItemIndex] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
-  const [apiConfig, setApiConfig] = useState({ baseUrl: 'http://localhost:5000', timeout: 5000 })
+  const [apiConfig, setApiConfig] = useState({})
   const [isProductListCollapsed, setIsProductListCollapsed] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
@@ -81,7 +81,7 @@ function App() {
   const fetchProducts = async () => {
     try {
       setIsLoadingProducts(true)
-      const response = await getProducts({ limit: 100 })
+      const response = await getProducts({ limit: 5000 })
       
       if (response.success && response.data) {
         // Map backend product structure to POS format
@@ -393,7 +393,7 @@ function App() {
   const checkout = async (paymentMethod, amountFromSummary = null) => {
     if (cart.length === 0) {
       alert('Keranjang kosong!')
-      return
+      return false
     }
 
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
@@ -410,7 +410,7 @@ function App() {
         const cashAmount = await showPrompt(`Total: Rp ${formatPrice(total)}\n\nMasukkan jumlah uang tunai:`)
         if (!cashAmount || isNaN(cashAmount) || parseInt(cashAmount) < total) {
           alert('Jumlah uang tidak mencukupi!')
-          return
+          return false
         }
         amountPaid = parseInt(cashAmount)
       }
@@ -420,7 +420,7 @@ function App() {
     } else {
       const paymentMethodName = paymentMethod === 'card' ? 'Kartu (EDC)' : 'QRIS / E-Wallet'
       if (!confirm(`Proses pembayaran dengan ${paymentMethodName}?\n\nTotal: Rp ${formatPrice(total)}`)) {
-        return
+        return false
       }
       alert('Pembayaran berhasil!')
     }
@@ -508,12 +508,14 @@ function App() {
         
         // Clear cart
         clearCart()
+        return true
       } else {
         throw new Error(response.message || 'Failed to create sale')
       }
     } catch (error) {
       console.error('Error processing sale:', error)
       alert('Error memproses transaksi: ' + error.message)
+      return false
     }
   }
 

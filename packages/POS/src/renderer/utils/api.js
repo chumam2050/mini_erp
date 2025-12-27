@@ -5,19 +5,7 @@ import { getAuthToken } from './auth'
  * @returns {Promise<Object>}
  */
 async function getApiConfig() {
-  try {
-    const config = await window.electronAPI.getApiConfig()
-    return {
-      baseUrl: config?.baseUrl || 'http://localhost:5000',
-      timeout: config?.timeout || 5000
-    }
-  } catch (error) {
-    console.error('Error getting API config:', error)
-    return {
-      baseUrl: 'http://localhost:5000',
-      timeout: 5000
-    }
-  }
+  return await window.electronAPI.getApiConfig()
 }
 
 /**

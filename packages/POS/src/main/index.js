@@ -151,12 +151,18 @@ ipcMain.handle('get-app-version', () => {
   return app.getVersion()
 })
 
-// Handle API configuration
+
 ipcMain.handle('get-api-config', () => {
-  return store.get('apiConfig', {
-    baseUrl: 'http://localhost:5000',
-    timeout: 5000
-  })
+  return store.get('apiConfig')
+})
+
+// Seed apiConfig on first run if missing
+app.whenReady().then(() => {
+  const existing = store.get('apiConfig')
+  if (!existing) {
+    console.log('Seeding default apiConfig from constants (index)')
+    store.set('apiConfig', { baseUrl: constants.API_BASE_URL, timeout: constants.API_TIMEOUT })
+  }
 })
 
 ipcMain.handle('set-api-config', (event, config) => {

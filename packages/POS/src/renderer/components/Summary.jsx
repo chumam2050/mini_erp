@@ -74,7 +74,10 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {} }) {
 
       <div className="grid grid-cols-1 border-t-2 border-border">
         <Button 
-          onClick={() => onCheckout('cash', canPayWithCash ? parsedCash : null)}
+          onClick={async () => {
+            const ok = await onCheckout('cash', canPayWithCash ? parsedCash : null)
+            if (ok) setCashAmount('')
+          }}
           className="h-24 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground flex-row gap-2 text-base font-bold border-r border-border"
           disabled={!total}
         >
