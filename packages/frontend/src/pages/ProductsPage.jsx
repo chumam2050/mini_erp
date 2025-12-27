@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import Navbar from '@/components/Navbar'
 import MediaUpload from '@/components/MediaUpload'
-import { Plus, Search, Package, TrendingDown, DollarSign, Box, Edit, Trash2, AlertCircle, Image as ImageIcon } from 'lucide-react'
+import { Plus, Search, Package, TrendingDown, DollarSign, Box, Edit, Trash2, AlertCircle, Image as ImageIcon, Upload } from 'lucide-react'
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([])
@@ -36,6 +36,12 @@ export default function ProductsPage() {
     stock: '',
     minStock: ''
   })
+
+  // Upload CSV states
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [uploadFile, setUploadFile] = useState(null)
+  const [uploadLoading, setUploadLoading] = useState(false)
+  const [uploadResult, setUploadResult] = useState(null)
   const [formErrors, setFormErrors] = useState({})
   const [submitLoading, setSubmitLoading] = useState(false)
   const navigate = useNavigate()
@@ -219,6 +225,60 @@ export default function ProductsPage() {
     }
   }
 
+  // Upload CSV handlers
+  const downloadTemplate = () => {
+    const header = 'alasan_gagal,nama_barang_update,kode_barang_update,stok_sekarang,minimum_stok,stok_tambahan_update,harga_beli_update\n'
+    const sample = ',contoh produk,0001,100,0,0,10000\n'
+    const csv = header + sample
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'template_stok_produk.csv'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleFileChange = (e) => {
+    setUploadFile(e.target.files?.[0] || null)
+    setUploadResult(null)
+  }
+
+  const handleUploadSubmit = async (e) => {
+    e.preventDefault()
+    if (!uploadFile) return alert('Pilih file CSV terlebih dahulu')
+
+    try {
+      setUploadLoading(true)
+      const token = localStorage.getItem('token')
+      const form = new FormData()
+      form.append('file', uploadFile)
+
+      const response = await axios.post('/api/products/import', form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      setUploadResult(response.data)
+      fetchProducts()
+    } catch (err) {
+      console.error('Upload error:', err)
+      alert(err.response?.data?.message || 'Gagal mengupload file')
+    } finally {
+      setUploadLoading(false)
+    }
+  }
+
+  const closeUploadDialog = () => {
+    setUploadDialogOpen(false)
+    setUploadFile(null)
+    setUploadResult(null)
+  }
+
   const getStatusBadge = (product) => {
     if (product.stock === 0) return 'destructive'
     if (product.stock < product.minStock) return 'secondary'
@@ -343,10 +403,16 @@ export default function ProductsPage() {
                   Kelola semua produk dalam inventory
                 </CardDescription>
               </div>
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="mr-2 h-4 w-4" />
-                Tambah Produk
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => handleOpenDialog()}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Tambah Produk
+                </Button>
+                <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload CSV
+                </Button>
+              </div>
             </div>
             <Separator className="my-4" />
             <div className="relative">
@@ -816,6 +882,57 @@ export default function ProductsPage() {
               </DialogFooter>
             </form>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Upload CSV Dialog */}
+        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+          <DialogContent className="sm:max-w-[700px]">
+            <DialogHeader>
+              <DialogTitle>Upload CSV Produk</DialogTitle>
+              <DialogDescription>
+                Unggah CSV dengan format template yang disediakan untuk update stok / harga secara massal.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleUploadSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">Unduh template CSV untuk contoh format.</div>
+                  <Button variant="ghost" onClick={downloadTemplate}>
+                    Download Template
+                  </Button>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="csvFile">Pilih file CSV</Label>
+                  <input id="csvFile" type="file" accept=",.csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={handleFileChange} />
+                </div>
+
+                {uploadResult && (
+                  <div className="bg-primary/5 border border-primary/20 px-4 py-3 rounded-md text-sm">
+                    <div><strong>Processed:</strong> {uploadResult.processed}</div>
+                    <div><strong>Updated:</strong> {uploadResult.updated}</div>
+                    <div><strong>Created:</strong> {uploadResult.created}</div>
+                    {uploadResult.errors && uploadResult.errors.length > 0 && (
+                      <div className="mt-2">
+                        <div className="font-medium">Errors:</div>
+                        <ul className="list-disc pl-5 text-sm">
+                          {uploadResult.errors.map((err, idx) => (
+                            <li key={idx}>{`Baris ${err.row}: ${err.message}`}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={closeUploadDialog} disabled={uploadLoading}>Batal</Button>
+                <Button type="submit" disabled={uploadLoading}>{uploadLoading ? 'Mengupload...' : 'Upload'}</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
 

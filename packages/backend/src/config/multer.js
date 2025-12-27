@@ -29,15 +29,26 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
     const allowedImageTypes = /jpeg|jpg|png|gif|webp/
     const allowedVideoTypes = /mp4|mov|avi|webm/
+    const allowedSpreadsheetExts = /csv|xls|xlsx/
+    const allowedSpreadsheetMimes = [
+        'text/csv',
+        'application/csv',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    ]
+
     const extname = path.extname(file.originalname).toLowerCase().replace('.', '')
-    
+    const mimetype = (file.mimetype || '').toLowerCase()
+
     const isImage = allowedImageTypes.test(extname)
     const isVideo = allowedVideoTypes.test(extname)
-    
-    if (isImage || isVideo) {
+    const isSpreadsheet = allowedSpreadsheetExts.test(extname) || allowedSpreadsheetMimes.includes(mimetype)
+
+    // Allow spreadsheets only for the import endpoint (field name 'file')
+    if (isImage || isVideo || (isSpreadsheet && file.fieldname === 'file')) {
         cb(null, true)
     } else {
-        cb(new Error('Only image files (JPEG, PNG, GIF, WEBP) and video files (MP4, MOV, AVI, WEBM) are allowed'))
+        cb(new Error('Only image files (JPEG, PNG, GIF, WEBP) and video files (MP4, MOV, AVI, WEBM) are allowed. CSV/XLS/XLSX are allowed for imports.'))
     }
 }
 

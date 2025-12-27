@@ -19,8 +19,9 @@ import {
     generateBarcodeLabels,
     generateSimpleLabel,
     generateThermalBarcodeLabels,
-    generateLargeScanBarcode
-} from '../controllers/productController.js'
+    generateLargeScanBarcode,
+    importProductsCSV
+} from '../controllers/productController.js' 
 import {
     uploadProductMedia,
     setPrimaryImage,
@@ -380,6 +381,30 @@ router.delete('/products/:id', authenticateToken, authorize('Administrator', 'Ma
  *         description: Product not found
  */
 router.post('/products/:id/media', authenticateToken, authorize('Administrator', 'Manager'), upload.array('files', 10), uploadProductMedia)
+
+/**
+ * @swagger
+ * /api/products/import:
+ *   post:
+ *     summary: Import products via CSV (stock/price updates)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Import result
+ */
+router.post('/products/import', authenticateToken, authorize('Administrator', 'Manager'), upload.single('file'), importProductsCSV)
 
 /**
  * @swagger

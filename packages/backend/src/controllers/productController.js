@@ -1,4 +1,5 @@
 import Product from '../models/Product.js'
+import path from 'path'
 import { generateBarcodePDF, generateBatchBarcodePDF, generateBarcodeLabelsPDF } from '../utils/barcodeGenerator.js'
 import { generateSimpleProductLabel, generateThermalLabels, generateLargeBarcodeForScanning } from '../utils/thermalLabelGenerator.js'
 
@@ -436,6 +437,143 @@ export const generateLargeScanBarcode = async (req, res) => {
             error: 'Failed to generate large barcode',
             message: error.message
         })
+    }
+}
+
+/**
+ * Import products from CSV file (bulk stock/price updates)
+ */
+export const importProductsCSV = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded', message: 'Please upload a CSV file' })
+        }
+
+        const fs = await import('fs')
+
+        const ext = path.extname(req.file.originalname).toLowerCase()
+
+        let records = []
+
+        if (ext === '.csv') {
+            const { parse } = await import('csv-parse/sync')
+            const content = await fs.promises.readFile(req.file.path, 'utf8')
+            records = parse(content, { columns: true, skip_empty_lines: true, trim: true })
+        } else if (ext === '.xls' || ext === '.xlsx') {
+            // Use xlsx to parse Excel files
+            const xlsx = await import('xlsx')
+            const buffer = await fs.promises.readFile(req.file.path)
+            const workbook = xlsx.read(buffer, { type: 'buffer' })
+            const sheetName = workbook.SheetNames[0]
+            const sheet = workbook.Sheets[sheetName]
+            records = xlsx.utils.sheet_to_json(sheet, { defval: '' })
+        } else {
+            return res.status(400).json({ error: 'Unsupported file type', message: 'Please upload CSV, XLS or XLSX file' })
+        }
+
+        const results = { processed: 0, created: 0, updated: 0, errors: [] }
+
+        for (let i = 0; i < records.length; i++) {
+            const row = records[i]
+            const rowNum = i + 2 // account for header row
+
+            const sku = (row['kode_barang_update'] || row['sku'] || '').toString().trim()
+            const name = (row['nama_barang_update'] || row['name'] || '').toString().trim()
+            const stokTambahan = row['stok_tambahan_update'] ?? row['stock_delta'] ?? ''
+            const stokSekarang = row['stok_sekarang'] ?? row['stock_now'] ?? ''
+            const minStock = row['minimum_stok'] ?? row['minStock'] ?? ''
+            const harga = row['harga_beli_update'] ?? row['price'] ?? ''
+
+            if (!sku) {
+                results.errors.push({ row: rowNum, message: 'Missing sku (kode_barang_update)' })
+                continue
+            }
+
+            const product = await Product.findOne({ where: { sku } })
+
+            if (product) {
+                // Update
+                if (stokTambahan !== undefined && stokTambahan !== '') {
+                    const delta = parseInt(String(stokTambahan).replace(/[^-0-9]/g, ''), 10)
+                    if (Number.isNaN(delta)) {
+                        results.errors.push({ row: rowNum, message: 'Invalid stok_tambahan_update' })
+                        continue
+                    }
+                    product.stock = (product.stock || 0) + delta
+                }
+
+                if (minStock !== undefined && minStock !== '') {
+                    const n = parseInt(String(minStock).replace(/[^0-9]/g, ''), 10)
+                    if (Number.isNaN(n)) {
+                        results.errors.push({ row: rowNum, message: 'Invalid minimum_stok' })
+                        continue
+                    }
+                    product.minStock = n
+                }
+
+                if (harga !== undefined && harga !== '') {
+                    const p = parseFloat(String(harga).replace(/[^0-9.\-]/g, ''))
+                    if (Number.isNaN(p)) {
+                        results.errors.push({ row: rowNum, message: 'Invalid harga_beli_update' })
+                        continue
+                    }
+                    product.price = p
+                }
+
+                await product.save()
+                results.updated++
+            } else {
+                // Create (best-effort)
+                let stock = 0
+                if (stokTambahan !== undefined && stokTambahan !== '') {
+                    const s = parseInt(String(stokTambahan).replace(/[^-0-9]/g, ''), 10)
+                    stock = Number.isNaN(s) ? 0 : s
+                } else if (stokSekarang !== undefined && stokSekarang !== '') {
+                    const s2 = parseInt(String(stokSekarang).replace(/[^0-9]/g, ''), 10)
+                    stock = Number.isNaN(s2) ? 0 : s2
+                }
+
+                let min = 0
+                if (minStock !== undefined && minStock !== '') {
+                    const m = parseInt(String(minStock).replace(/[^0-9]/g, ''), 10)
+                    min = Number.isNaN(m) ? 0 : m
+                }
+
+                let pr = 0
+                if (harga !== undefined && harga !== '') {
+                    const p2 = parseFloat(String(harga).replace(/[^0-9.\-]/g, ''))
+                    pr = Number.isNaN(p2) ? 0 : p2
+                }
+
+                await Product.create({
+                    sku,
+                    name: name || sku,
+                    category: 'Uncategorized',
+                    price: pr,
+                    stock,
+                    minStock: min
+                })
+
+                results.created++
+            }
+
+            results.processed++
+        }
+
+        res.json(results)
+    } catch (error) {
+        console.error('Import CSV error:', error)
+        res.status(500).json({ error: 'Failed to import CSV', message: error.message })
+    } finally {
+        // Cleanup uploaded file
+        try {
+            if (req.file && req.file.path) {
+                const fs2 = await import('fs')
+                fs2.unlink(req.file.path, () => {})
+            }
+        } catch (e) {
+            // ignore
+        }
     }
 }
 
