@@ -272,7 +272,7 @@ function generateReceiptData(saleData) {
   
   // Store header
   receipt += ESC + 'E' + '\x01'; // Bold on
-  receipt += 'SUPERMARKET SEJAHTERA\n';
+  receipt += 'Retaliq\n';
   receipt += ESC + 'E' + '\x00'; // Bold off
   receipt += 'POS #04\n';
   receipt += 'Jl. Contoh No. 123\n';

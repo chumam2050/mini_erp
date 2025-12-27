@@ -13,7 +13,7 @@ const SaleItem = sequelize.define('SaleItem', {
     },
     productId: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: true
     },
     productName: {
         type: DataTypes.STRING,
@@ -21,7 +21,7 @@ const SaleItem = sequelize.define('SaleItem', {
     },
     productSku: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     quantity: {
         type: DataTypes.INTEGER,

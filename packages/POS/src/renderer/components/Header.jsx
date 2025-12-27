@@ -31,7 +31,7 @@ function Header({ onSettingsClick, currentUser, onLogout }) {
     <header className="bg-card border-b shadow-md">
       <div className="flex justify-between items-center px-6 py-4">
         <div className="flex-1">
-          <h1 className="text-lg font-semibold mb-1.5 text-foreground">Supermarket Sejahtera | POS #04</h1>
+          <h1 className="text-lg font-semibold mb-1.5 text-foreground">RetaliQ - POS #01</h1>
           <div className="flex gap-6 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
               <User className="h-3.5 w-3.5" />

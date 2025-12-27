@@ -179,18 +179,27 @@ export const createSale = async (req, res) => {
 
         for (const item of items) {
             // Validate item structure
-            if (!item.productId || !item.quantity || !item.unitPrice) {
-                throw new Error('Invalid item data: productId, quantity, and unitPrice are required')
+            // Allow items that reference an existing product (productId) OR generic items with a name (e.g., plastic bags)
+            if (!item.quantity || !item.unitPrice || (!item.productId && !item.productName && !item.name)) {
+                throw new Error('Invalid item data: productId or productName (name), quantity, and unitPrice are required')
             }
 
-            const product = await Product.findByPk(item.productId, { transaction })
-            
-            if (!product) {
-                throw new Error(`Product with ID ${item.productId} not found`)
-            }
+            let product = null
+            let productName = item.productName || item.name || null
+            let productSku = item.productSku || null
 
-            if (product.stock < item.quantity) {
-                throw new Error(`Insufficient stock for product ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`)
+            if (item.productId) {
+                product = await Product.findByPk(item.productId, { transaction })
+                if (!product) {
+                    throw new Error(`Product with ID ${item.productId} not found`)
+                }
+
+                if (product.stock < item.quantity) {
+                    throw new Error(`Insufficient stock for product ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`)
+                }
+
+                productName = product.name
+                productSku = product.sku
             }
 
             const itemDiscount = item.discount || 0
@@ -210,9 +219,9 @@ export const createSale = async (req, res) => {
             subtotal += itemSubtotal
 
             validatedItems.push({
-                productId: item.productId,
-                productName: product.name,
-                productSku: product.sku,
+                productId: item.productId || null,
+                productName: productName,
+                productSku: productSku,
                 quantity: parseInt(item.quantity),
                 unitPrice: parseFloat(item.unitPrice),
                 discount: parseFloat(itemDiscount),
@@ -274,12 +283,14 @@ export const createSale = async (req, res) => {
                 ...item
             }, { transaction })
 
-            // Update product stock
-            await Product.decrement('stock', {
-                by: item.quantity,
-                where: { id: item.productId },
-                transaction
-            })
+            // Update product stock only for items tied to a real product
+            if (item.productId) {
+                await Product.decrement('stock', {
+                    by: item.quantity,
+                    where: { id: item.productId },
+                    transaction
+                })
+            }
         }
 
         await transaction.commit()

@@ -66,10 +66,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 <LogIn className="w-10 h-10 text-primary-foreground" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Mini ERP - POS</h1>
-            <p className="text-muted-foreground text-sm">
-              Supermarket Sejahtera
-            </p>
+            <h1 className="text-3xl font-bold tracking-tight">RetaliQ - POS</h1>
             <p className="text-muted-foreground text-xs">
               Masukkan kredensial untuk melanjutkan
             </p>
@@ -144,8 +141,8 @@ export default function LoginPage({ onLoginSuccess }) {
 
           {/* Footer */}
           <div className="text-center text-xs text-muted-foreground border-t pt-4">
-            <p>POS Terminal #04</p>
-            <p className="mt-1">© 2025 Supermarket Sejahtera</p>
+            <p>POS Terminal #01</p>
+            <p className="mt-1">© 2025 RetaliQ</p>
           </div>
         </div>
       </Card>

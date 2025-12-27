@@ -52,6 +52,7 @@ function Navbar() {
     { name: 'Sales', path: '/sales', icon: BarChart3 },
     { name: 'POS', path: '/pos', icon: CreditCard },
     { name: 'Users', path: '/users', icon: Users },
+    { name: 'Settings', path: '/settings', icon: Settings },
   ]
 
   const isActive = (path) => location.pathname === path

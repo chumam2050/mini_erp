@@ -30,6 +30,30 @@ function App() {
   })
   const barcodeInputRef = useRef(null)
 
+  // Simple in-app prompt modal state + helper (replaces window.prompt which isn't supported)
+  const [promptState, setPromptState] = useState({ visible: false, title: '', defaultValue: '' })
+  const promptResolverRef = useRef(null)
+
+  const showPrompt = (title, defaultValue = '') => {
+    return new Promise(resolve => {
+      promptResolverRef.current = resolve
+      setPromptState({ visible: true, title, defaultValue })
+      // focus input next tick
+      setTimeout(() => {
+        const inputEl = document.getElementById('app-prompt-input')
+        inputEl?.focus()
+        inputEl?.select()
+      }, 50)
+    })
+  }
+
+  const closePrompt = (value) => {
+    const resolver = promptResolverRef.current
+    if (resolver) resolver(value)
+    promptResolverRef.current = null
+    setPromptState({ visible: false, title: '', defaultValue: '' })
+  }
+
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
@@ -93,7 +117,13 @@ function App() {
           taxRate: response['pos.tax_rate']?.value || 11,
           defaultDiscount: response['pos.default_discount']?.value || 0,
           enableTax: response['pos.enable_tax']?.value !== false,
-          enableDiscount: response['pos.enable_discount']?.value !== false
+          enableDiscount: response['pos.enable_discount']?.value !== false,
+          store: {
+            name: response['store.name']?.value || 'Mini ERP Store',
+            address: response['store.address']?.value || '',
+            phone: response['store.phone']?.value || '',
+            email: response['store.email']?.value || '',
+          }
         })
       }
     } catch (error) {
@@ -213,12 +243,12 @@ function App() {
     }
   }
 
-  const addToCart = (productId) => {
+  const addToCart = async (productId) => {
     const product = products.find(p => p.id === productId)
     if (!product) return
 
     if (product.perKg) {
-      const weight = prompt(`Masukkan berat ${product.name} (kg):`, '0.5')
+      const weight = await showPrompt(`Masukkan berat ${product.name} (kg):`, '0.5')
       if (!weight || isNaN(weight) || parseFloat(weight) <= 0) return
 
       setCart(prev => [...prev, {
@@ -254,14 +284,14 @@ function App() {
     }
   }
 
-  const changeQuantity = () => {
+  const changeQuantity = async () => {
     if (selectedItemIndex === null) {
       alert('Pilih item terlebih dahulu!')
       return
     }
 
     const item = cart[selectedItemIndex]
-    const newQty = prompt(`Ubah jumlah untuk ${item.name}:`, item.quantity)
+    const newQty = await showPrompt(`Ubah jumlah untuk ${item.name}:`, item.quantity)
 
     if (newQty && !isNaN(newQty) && parseInt(newQty) > 0) {
       setCart(prev => {
@@ -327,8 +357,8 @@ function App() {
     barcodeInputRef.current?.focus()
   }
 
-  const inputMember = () => {
-    const memberId = prompt('Masukkan ID Member:')
+  const inputMember = async () => {
+    const memberId = await showPrompt('Masukkan ID Member:')
     if (memberId) {
       alert(`Member ${memberId} berhasil ditambahkan!`)
       // TODO: Apply member discount
@@ -360,7 +390,7 @@ function App() {
     })
   }
 
-  const checkout = async (paymentMethod) => {
+  const checkout = async (paymentMethod, amountFromSummary = null) => {
     if (cart.length === 0) {
       alert('Keranjang kosong!')
       return
@@ -374,12 +404,16 @@ function App() {
     let amountPaid = total
 
     if (paymentMethod === 'cash') {
-      const cashAmount = prompt(`Total: Rp ${formatPrice(total)}\n\nMasukkan jumlah uang tunai:`)
-      if (!cashAmount || isNaN(cashAmount) || parseInt(cashAmount) < total) {
-        alert('Jumlah uang tidak mencukupi!')
-        return
+      if (amountFromSummary && !isNaN(amountFromSummary) && parseInt(amountFromSummary) >= total) {
+        amountPaid = parseInt(amountFromSummary)
+      } else {
+        const cashAmount = await showPrompt(`Total: Rp ${formatPrice(total)}\n\nMasukkan jumlah uang tunai:`)
+        if (!cashAmount || isNaN(cashAmount) || parseInt(cashAmount) < total) {
+          alert('Jumlah uang tidak mencukupi!')
+          return
+        }
+        amountPaid = parseInt(cashAmount)
       }
-      amountPaid = parseInt(cashAmount)
 
       const change = amountPaid - total
       alert(`Pembayaran berhasil!\n\nTotal: Rp ${formatPrice(total)}\nBayar: Rp ${formatPrice(amountPaid)}\nKembalian: Rp ${formatPrice(change)}`)
@@ -394,13 +428,29 @@ function App() {
     try {
       // Prepare sale data for backend
       const saleData = {
-        items: cart.filter(item => !item.isPlasticBag).map(item => ({
-          productId: item.id,
-          quantity: item.quantity,
-          unitPrice: item.price,
-          discount: 0,
-          discountType: 'fixed'
-        })),
+        items: cart.map(item => {
+          if (item.isPlasticBag) {
+            return {
+              productId: null,
+              productName: item.name,
+              productSku: null,
+              quantity: item.quantity,
+              unitPrice: item.price,
+              discount: 0,
+              discountType: 'fixed'
+            }
+          }
+
+          return {
+            productId: item.id,
+            productName: item.name,
+            productSku: item.sku || null,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            discount: 0,
+            discountType: 'fixed'
+          }
+        }),
         discount: posSettings.defaultDiscount,
         discountType: 'percentage',
         taxRate: posSettings.taxRate,
@@ -433,7 +483,8 @@ function App() {
             paymentMethod: paymentMethod,
             amountPaid: amountPaid,
             change: amountPaid - total,
-            cashier: currentUser?.name || 'Unknown'
+            cashier: currentUser?.name || 'Unknown',
+            settings: posSettings
           }
           
           await window.electronAPI.printReceipt(receiptData)
@@ -544,6 +595,33 @@ function App() {
           </div>
         </div>
       </main>
+
+      {/* In-app prompt modal (replaces window.prompt) */}
+      {promptState.visible && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-40" onClick={() => closePrompt(null)}></div>
+
+          <div className="bg-card text-foreground rounded shadow p-4 z-10 w-96">
+            <div className="mb-2 font-semibold">{promptState.title}</div>
+            <input
+              id="app-prompt-input"
+              defaultValue={promptState.defaultValue}
+              className="w-full border rounded p-2 mb-3 text-black"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  closePrompt(e.target.value)
+                } else if (e.key === 'Escape') {
+                  closePrompt(null)
+                }
+              }}
+            />
+            <div className="flex justify-end gap-2">
+              <button className="py-1 px-3 border rounded" onClick={() => closePrompt(null)}>Batal</button>
+              <button className="py-1 px-3 bg-primary text-white rounded" onClick={() => { const v = document.getElementById('app-prompt-input')?.value || ''; closePrompt(v) }}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showSettings && (
         <SettingsModal

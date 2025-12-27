@@ -4,6 +4,7 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import ProductsPage from './pages/ProductsPage'
 import UsersPage from './pages/UsersPage'
+import SettingsPage from './pages/SettingsPage'
 import POSPage from './pages/POSPage'
 import SalesPage from './pages/SalesPage'
 
@@ -39,6 +40,14 @@ function App() {
         element={
           <ProtectedRoute>
             <UsersPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/settings" 
+        element={
+          <ProtectedRoute>
+            <SettingsPage />
           </ProtectedRoute>
         } 
       />

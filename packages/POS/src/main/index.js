@@ -211,17 +211,20 @@ function generateReceiptHTML(saleData) {
   const paymentMethod = saleData.paymentMethod || 'Cash'
   const amountPaid = saleData.amountPaid || total
   const change = saleData.change || 0
+  const store = saleData.settings?.store || {}
+
+  console.log('Generating receipt HTML with sale data:', saleData)
 
   let itemsHtml = ''
   saleData.items.forEach((item) => {
     const itemTotal = item.quantity * item.price
     itemsHtml += `
       <tr>
-        <td colspan="2" style="padding: 2px 0;">${item.name}</td>
+        <td colspan="2">${item.name}</td>
       </tr>
       <tr>
-        <td style="padding: 2px 0; padding-left: 10px;">${item.quantity} x Rp ${formatPrice(item.price)}</td>
-        <td style="padding: 2px 0; text-align: right;">Rp ${formatPrice(itemTotal)}</td>
+        <td>${item.quantity} x Rp ${formatPrice(item.price)}</td>
+        <td style="text-align: right;">Rp ${formatPrice(itemTotal)}</td>
       </tr>
     `
   })
@@ -236,28 +239,39 @@ function generateReceiptHTML(saleData) {
             size: 58mm auto;
             margin: 0;
           }
+          /* Ensure padding is included in the width so content doesn't overflow */
+          *, *::before, *::after { box-sizing: border-box; }
           body {
             font-family: 'Courier New', monospace;
             font-size: 10px;
             width: 58mm;
+            max-width: 58mm;
             margin: 0;
-            padding: 5mm 3mm;
+            padding: 3mm 2mm; /* further reduced horizontal padding to avoid clipping */
             line-height: 1.3;
+            overflow: visible;
+            -webkit-print-color-adjust: exact;
           }
           .header {
             text-align: center;
             margin-bottom: 8px;
           }
           .store-name {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: bold;
           }
           table {
+            margin: 0; /* remove extra side margin to prevent overflowing printable area */
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
+            word-wrap: break-word;
           }
           td {
-            font-size: 10px;
+            font-size: 8px;
+            word-break: break-word;
+            white-space: normal;
+            padding: 2px 20px;
           }
           .divider {
             border-top: 1px dashed #000;
@@ -265,36 +279,36 @@ function generateReceiptHTML(saleData) {
           }
           .total-row {
             font-weight: bold;
-            font-size: 12px;
+            font-size: 8px;
           }
           .footer {
             text-align: center;
             margin-top: 10px;
-            font-size: 10px;
+            font-size: 8px;
           }
         </style>
       </head>
       <body>
         <div class="header">
-          <div class="store-name">SUPERMARKET SEJAHTERA</div>
-          <div style="font-size: 9px;">POS #04</div>
-          <div style="font-size: 9px;">Jl. Contoh No. 123</div>
-          <div style="font-size: 9px;">Telp: (021) 1234-5678</div>
+          <div class="store-name">${store.name || ''}</div>
+          <div style="font-size: 8px;">${store.address || ''}</div>
+          <div style="font-size: 8px;">${store.email || ''}</div>
+          <div style="font-size: 8px;">${store.phone || ''}</div>
         </div>
         
         <div class="divider"></div>
         
         <table>
           <tr>
-            <td>No:</td>
+            <td style="width: 24mm">No:</td>
             <td style="text-align: right;">${saleData.saleNumber || 'N/A'}</td>
           </tr>
           <tr>
-            <td>Tanggal:</td>
-            <td style="text-align: right; font-size: 9px;">${new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</td>
+            <td style="width: 24mm">Tanggal:</td>
+            <td style="text-align: right; font-size: 8px;">${new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</td>
           </tr>
           <tr>
-            <td>Kasir:</td>
+            <td style="width: 24mm">Kasir:</td>
             <td style="text-align: right;">${saleData.cashier || 'Unknown'}</td>
           </tr>
         </table>
@@ -316,7 +330,7 @@ function generateReceiptHTML(saleData) {
           ${tax > 0 ? `<tr><td>Pajak:</td><td style="text-align: right;">Rp ${formatPrice(tax)}</td></tr>` : ''}
           <tr class="total-row">
             <td>TOTAL:</td>
-            <td style="text-align: right;">Rp ${formatPrice(total)}</td>
+            <td style="text-align: right; width: 25mm;">Rp ${formatPrice(total)}</td>
           </tr>
         </table>
         
@@ -329,9 +343,9 @@ function generateReceiptHTML(saleData) {
           </tr>
           <tr>
             <td>Bayar:</td>
-            <td style="text-align: right;">Rp ${formatPrice(amountPaid)}</td>
+            <td style="text-align: right; width: 25mm;">Rp ${formatPrice(amountPaid)}</td>
           </tr>
-          ${change > 0 ? `<tr><td>Kembalian:</td><td style="text-align: right;">Rp ${formatPrice(change)}</td></tr>` : ''}
+          ${change > 0 ? `<tr><td>Kembalian:</td><td style="text-align: right; width: 25mm;">Rp ${formatPrice(change)}</td></tr>` : ''}
         </table>
         
         <div class="footer">

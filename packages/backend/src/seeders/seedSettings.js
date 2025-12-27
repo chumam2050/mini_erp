@@ -51,7 +51,7 @@ export const seedDefaultSettings = async () => {
       // Store Settings
       {
         key: 'store.name',
-        value: 'Supermarket Sejahtera',
+        value: 'RetaliQ',
         type: 'string',
         description: 'Nama toko',
         category: 'store'
