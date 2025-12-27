@@ -373,6 +373,7 @@ ipcMain.handle('print-receipt', async (event, saleData) => {
 
 // Test print
 ipcMain.handle('test-print', async () => {
+  console.log(receiptPrinter);
   return new Promise((resolve, reject) => {
     if (!receiptPrinter || !receiptPrinter.isOpen) {
       reject(new Error('Receipt printer not connected'));

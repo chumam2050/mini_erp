@@ -1,0 +1,4 @@
+# Backend .gitignore
+
+# Barcode output directory
+barcode-output/

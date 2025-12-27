@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, Menu } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import Store from 'electron-store'
-import PosPrinter from 'electron-pos-printer'
 
 // Initialize electron-store for persistent data
 const store = new Store()
@@ -181,14 +180,21 @@ ipcMain.handle('get-printers', async () => {
 
 // Device Configuration
 ipcMain.handle('get-device-config', () => {
-  return store.get('deviceConfig', {
+  const config = store.get('deviceConfig', {
     receiptPrinter: null // Printer name from Windows printers
   })
+  console.log('Getting device config:', config)
+  return config
 })
 
 ipcMain.handle('set-device-config', (event, config) => {
+  console.log('Setting device config:', config)
   store.set('deviceConfig', config)
-  console.log('Device config saved:', config)
+  
+  // Verify it was saved correctly
+  const savedConfig = store.get('deviceConfig')
+  console.log('Device config saved and verified:', savedConfig)
+  
   return true
 })
 
@@ -211,57 +217,69 @@ function generateReceiptHTML(saleData) {
     const itemTotal = item.quantity * item.price
     itemsHtml += `
       <tr>
-        <td style="padding: 4px 0;">${item.name}</td>
-        <td style="padding: 4px 0; text-align: right;">${item.quantity} x Rp ${formatPrice(item.price)}</td>
-        <td style="padding: 4px 0; text-align: right;">Rp ${formatPrice(itemTotal)}</td>
+        <td colspan="2" style="padding: 2px 0;">${item.name}</td>
+      </tr>
+      <tr>
+        <td style="padding: 2px 0; padding-left: 10px;">${item.quantity} x Rp ${formatPrice(item.price)}</td>
+        <td style="padding: 2px 0; text-align: right;">Rp ${formatPrice(itemTotal)}</td>
       </tr>
     `
   })
 
   return `
+    <!DOCTYPE html>
     <html>
       <head>
+        <meta charset="utf-8">
         <style>
+          @page {
+            size: 58mm auto;
+            margin: 0;
+          }
           body {
             font-family: 'Courier New', monospace;
-            font-size: 12px;
-            width: 280px;
+            font-size: 10px;
+            width: 58mm;
             margin: 0;
-            padding: 10px;
+            padding: 5mm 3mm;
+            line-height: 1.3;
           }
           .header {
             text-align: center;
-            font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
           }
           .store-name {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
           }
           table {
             width: 100%;
             border-collapse: collapse;
           }
+          td {
+            font-size: 10px;
+          }
           .divider {
             border-top: 1px dashed #000;
-            margin: 10px 0;
+            margin: 6px 0;
           }
           .total-row {
             font-weight: bold;
-            font-size: 14px;
+            font-size: 12px;
           }
           .footer {
             text-align: center;
-            margin-top: 20px;
+            margin-top: 10px;
+            font-size: 10px;
           }
         </style>
       </head>
       <body>
         <div class="header">
           <div class="store-name">SUPERMARKET SEJAHTERA</div>
-          <div>POS #04</div>
-          <div>Jl. Contoh No. 123</div>
-          <div>Telp: (021) 1234-5678</div>
+          <div style="font-size: 9px;">POS #04</div>
+          <div style="font-size: 9px;">Jl. Contoh No. 123</div>
+          <div style="font-size: 9px;">Telp: (021) 1234-5678</div>
         </div>
         
         <div class="divider"></div>
@@ -269,31 +287,22 @@ function generateReceiptHTML(saleData) {
         <table>
           <tr>
             <td>No:</td>
-            <td>${saleData.saleNumber || 'N/A'}</td>
+            <td style="text-align: right;">${saleData.saleNumber || 'N/A'}</td>
           </tr>
           <tr>
             <td>Tanggal:</td>
-            <td>${new Date().toLocaleString('id-ID')}</td>
+            <td style="text-align: right; font-size: 9px;">${new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</td>
           </tr>
           <tr>
             <td>Kasir:</td>
-            <td>${saleData.cashier || 'Unknown'}</td>
+            <td style="text-align: right;">${saleData.cashier || 'Unknown'}</td>
           </tr>
         </table>
         
         <div class="divider"></div>
         
         <table>
-          <thead>
-            <tr>
-              <th style="text-align: left;">Item</th>
-              <th style="text-align: right;">Qty x Harga</th>
-              <th style="text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
+          ${itemsHtml}
         </table>
         
         <div class="divider"></div>
@@ -335,104 +344,160 @@ function generateReceiptHTML(saleData) {
   `
 }
 
-// Print receipt using Windows printer
+// Print receipt using Electron's built-in printing
 ipcMain.handle('print-receipt', async (event, saleData) => {
   try {
     const deviceConfig = store.get('deviceConfig')
+    console.log('Print receipt - Device config:', deviceConfig)
+    
     const printerName = deviceConfig?.receiptPrinter
 
     if (!printerName) {
-      throw new Error('Printer belum dikonfigurasi')
+      console.error('Print receipt failed - No printer configured')
+      throw new Error('Printer belum dikonfigurasi. Silakan konfigurasi printer di Device Settings.')
     }
+
+    console.log('Print receipt - Using printer:', printerName)
 
     const receiptHTML = generateReceiptHTML(saleData)
 
-    const options = {
-      printerName: printerName,
-      silent: true,
-      preview: false,
-      width: 280,
-      margin: '0 0 0 0',
-      copies: 1,
-      timeOutPerLine: 400,
-      pageSize: '80mm' // Common receipt printer size
-    }
-
-    const data = [
-      {
-        type: 'text',
-        value: receiptHTML,
-        style: `width: 280px; margin: 0; padding: 0;`
+    // Create a hidden window for printing
+    const printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
       }
-    ]
+    })
 
-    await PosPrinter.print(data, options)
-    console.log('Receipt printed successfully')
-    return true
+    await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(receiptHTML)}`)
+
+    console.log('Print receipt - Sending to printer...')
+    
+    return new Promise((resolve, reject) => {
+      printWindow.webContents.print(
+        {
+          silent: true,
+          printBackground: true,
+          deviceName: printerName,
+          margins: {
+            marginType: 'none'
+          },
+          pageSize: {
+            width: 58000, // 58mm in microns
+            height: 100000 // auto height
+          }
+        },
+        (success, errorType) => {
+          printWindow.close()
+          if (success) {
+            console.log('Receipt printed successfully')
+            resolve(true)
+          } else {
+            console.error('Print failed:', errorType)
+            reject(new Error(`Print failed: ${errorType}`))
+          }
+        }
+      )
+    })
   } catch (error) {
     console.error('Error printing receipt:', error)
     throw error
   }
 })
 
-// Test print
+// Test print using Electron's built-in printing
 ipcMain.handle('test-print', async () => {
   try {
     const deviceConfig = store.get('deviceConfig')
+    console.log('Test print - Device config:', deviceConfig)
+    
     const printerName = deviceConfig?.receiptPrinter
 
     if (!printerName) {
-      throw new Error('Printer belum dikonfigurasi')
+      console.error('Test print failed - No printer configured')
+      throw new Error('Printer belum dikonfigurasi. Silakan pilih printer dan simpan konfigurasi terlebih dahulu.')
     }
 
+    console.log('Test print - Using printer:', printerName)
+
     const testHTML = `
+      <!DOCTYPE html>
       <html>
         <head>
+          <meta charset="utf-8">
           <style>
+            @page {
+              size: 58mm auto;
+              margin: 0;
+            }
             body {
               font-family: 'Courier New', monospace;
-              width: 280px;
+              font-size: 12px;
+              width: 58mm;
+              margin: 0;
+              padding: 10px;
               text-align: center;
-              padding: 20px;
             }
             .title {
               font-size: 16px;
               font-weight: bold;
               margin-bottom: 10px;
             }
+            .line {
+              margin: 5px 0;
+            }
           </style>
         </head>
         <body>
           <div class="title">TEST PRINT</div>
-          <div>Mini ERP POS</div>
-          <div>${new Date().toLocaleString('id-ID')}</div>
-          <div style="margin-top: 20px;">Printer: ${printerName}</div>
+          <div class="line">Mini ERP POS</div>
+          <div class="line">${new Date().toLocaleString('id-ID')}</div>
+          <div class="line" style="margin-top: 15px;">Printer: ${printerName}</div>
+          <div class="line" style="margin-top: 15px;">Test berhasil! ✓</div>
         </body>
       </html>
     `
 
-    const options = {
-      printerName: printerName,
-      silent: true,
-      preview: false,
-      width: 280,
-      margin: '0 0 0 0',
-      copies: 1,
-      timeOutPerLine: 400,
-      pageSize: '80mm'
-    }
-
-    const data = [
-      {
-        type: 'text',
-        value: testHTML,
-        style: `width: 280px; margin: 0; padding: 0;`
+    // Create a hidden window for printing
+    const printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
       }
-    ]
+    })
 
-    await PosPrinter.print(data, options)
-    console.log('Test print successful')
-    return true
+    await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(testHTML)}`)
+
+    console.log('Test print - Sending to printer...')
+    
+    return new Promise((resolve, reject) => {
+      printWindow.webContents.print(
+        {
+          silent: true,
+          printBackground: true,
+          deviceName: printerName,
+          margins: {
+            marginType: 'none'
+          },
+          pageSize: {
+            width: 58000, // 58mm in microns
+            height: 100000 // auto height
+          }
+        },
+        (success, errorType) => {
+          printWindow.close()
+          if (success) {
+            console.log('Test print successful')
+            resolve(true)
+          } else {
+            console.error('Test print failed:', errorType)
+            reject(new Error(`Test print failed: ${errorType}`))
+          }
+        }
+      )
+    })
   } catch (error) {
     console.error('Error test print:', error)
     throw error

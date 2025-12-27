@@ -1,9 +1,9 @@
 import { Edit3, Trash2, UserPlus, Weight } from 'lucide-react'
 import { Button } from './ui/button'
 
-function ActionButtons({ onChangeQty, onClearAll, onInputMember, onAddPlasticBag }) {
+function ActionButtons({ onChangeQty, onClearAll, onAddPlasticBag }) {
   return (
-    <div className="grid grid-cols-4 gap-3">
+    <div className="grid grid-cols-3 gap-3">
       <Button 
         onClick={() => onAddPlasticBag('small')}
         variant="outline"
@@ -22,16 +22,6 @@ function ActionButtons({ onChangeQty, onClearAll, onInputMember, onAddPlasticBag
         <Weight className="h-6 w-6" />
         <div className="text-center leading-tight">
           Kantong Plastik <br /> Besar
-        </div>
-      </Button>
-      <Button 
-        onClick={onInputMember}
-        variant="outline"
-        className="h-24 flex-col gap-2 text-sm font-semibold hover:bg-accent"
-      >
-        <UserPlus className="h-6 w-6" />
-        <div className="text-center leading-tight">
-          Input<br />Member
         </div>
       </Button>
       <Button 

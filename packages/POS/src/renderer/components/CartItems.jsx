@@ -4,17 +4,16 @@ import { Card } from './ui/card'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
 
-function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barcodeInputRef, formatPrice, onIncrementQuantity, onDecrementQuantity }) {
+function CartItems({ className, cart, selectedItemIndex, onSelectItem, onBarcodeInput, barcodeInputRef, formatPrice, onIncrementQuantity, onDecrementQuantity }) {
   const [barcodeValue, setBarcodeValue] = useState('')
   const [isFocused, setIsFocused] = useState(true)
 
   const handleSearch = () => {
-    console.log('Searching barcode:', barcodeValue)
     if (barcodeValue.trim()) {
       if (onBarcodeInput(barcodeValue.trim())) {
         setBarcodeValue('')
       }
-      // Always refocus after search attempt
+      // // Always refocus after search attempt
       setTimeout(() => {
         barcodeInputRef.current?.focus()
       }, 50)
@@ -35,7 +34,7 @@ function CartItems({ cart, selectedItemIndex, onSelectItem, onBarcodeInput, barc
   }
 
   return (
-    <Card className="flex flex-col h-full overflow-hidden">
+    <Card className={`flex flex-col h-full overflow-hidden ${className}`}>
       <div className="flex gap-3 p-5 border-b bg-muted/30">
         <div className="relative flex-1">
           <Input

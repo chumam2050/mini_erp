@@ -43,11 +43,33 @@ function SettingsModal({ onClose }) {
   }
 
   const handleTestPrint = async () => {
+    // Validate printer selection
+    if (!deviceConfig.receiptPrinter) {
+      alert('Silakan pilih printer terlebih dahulu!')
+      return
+    }
+
     setIsTestingPrinter(true)
     try {
+      // Save config first before testing to ensure printer is configured
+      console.log('Saving device config before test print:', deviceConfig)
+      await window.electronAPI.setDeviceConfig(deviceConfig)
+      
+      // Add a small delay to ensure config is saved
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      // Verify config is saved
+      const savedConfig = await window.electronAPI.getDeviceConfig()
+      console.log('Verified saved config:', savedConfig)
+      
+      if (!savedConfig.receiptPrinter) {
+        throw new Error('Konfigurasi printer gagal disimpan')
+      }
+      
       await window.electronAPI.testPrint()
       alert('Test print berhasil! Cek printer Anda.')
     } catch (error) {
+      console.error('Test print error:', error)
       alert('Error test print: ' + error.message)
     } finally {
       setIsTestingPrinter(false)
@@ -134,10 +156,29 @@ function SettingsModal({ onClose }) {
           )}
               
           <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Printer className="h-4 w-4" />
-              <span className="font-medium">Receipt Printer</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Printer className="h-4 w-4" />
+                <span className="font-medium">Receipt Printer</span>
+              </div>
+              {deviceConfig.receiptPrinter && (
+                <div className="flex items-center gap-1 text-xs text-green-500">
+                  <Check className="h-3 w-3" />
+                  <span>Configured</span>
+                </div>
+              )}
             </div>
+            
+            {/* Important Notice */}
+            {!deviceConfig.receiptPrinter && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded p-2 flex gap-2">
+                <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-muted-foreground">
+                  Pilih printer, lalu klik <span className="font-semibold">Test Print</span> untuk memverifikasi. Pastikan klik <span className="font-semibold">Save Settings</span> untuk menyimpan konfigurasi.
+                </p>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="printer-name" className="text-sm">
                 Pilih Printer
@@ -162,9 +203,15 @@ function SettingsModal({ onClose }) {
                 </Select>
               </div>
               {deviceConfig.receiptPrinter && (
-                <p className="text-xs text-muted-foreground">
-                  Printer terpilih: <span className="font-medium">{deviceConfig.receiptPrinter}</span>
-                </p>
+                <div className="text-xs space-y-1">
+                  <p className="text-muted-foreground">
+                    Printer terpilih: <span className="font-medium text-foreground">{deviceConfig.receiptPrinter}</span>
+                  </p>
+                  <p className="text-yellow-600 dark:text-yellow-500 flex items-start gap-1">
+                    <AlertCircle className="h-3 w-3 shrink-0 mt-0.5" />
+                    <span>Jangan lupa klik &quot;Save Settings&quot; untuk menyimpan konfigurasi!</span>
+                  </p>
+                </div>
               )}
             </div>
             <Button

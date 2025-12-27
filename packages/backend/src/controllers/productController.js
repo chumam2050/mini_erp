@@ -1,4 +1,6 @@
 import Product from '../models/Product.js'
+import { generateBarcodePDF, generateBatchBarcodePDF, generateBarcodeLabelsPDF } from '../utils/barcodeGenerator.js'
+import { generateSimpleProductLabel, generateThermalLabels, generateLargeBarcodeForScanning } from '../utils/thermalLabelGenerator.js'
 
 /**
  * Get all products
@@ -175,3 +177,265 @@ export const deleteProduct = async (req, res) => {
         })
     }
 }
+
+/**
+ * Generate barcode PDF for a single product
+ */
+export const generateProductBarcode = async (req, res) => {
+    try {
+        const productId = parseInt(req.params.id)
+        const product = await Product.findByPk(productId)
+
+        if (!product) {
+            return res.status(404).json({
+                error: 'Product not found',
+                message: `Product with ID ${productId} does not exist`
+            })
+        }
+
+        // Generate PDF
+        const doc = await generateBarcodePDF(product)
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf')
+        res.setHeader('Content-Disposition', `attachment; filename=barcode_${product.sku}.pdf`)
+
+        // Pipe PDF to response
+        doc.pipe(res)
+        doc.end()
+    } catch (error) {
+        console.error('Generate barcode error:', error)
+        res.status(500).json({
+            error: 'Failed to generate barcode',
+            message: error.message
+        })
+    }
+}
+
+/**
+ * Generate barcode PDF for multiple products
+ */
+export const generateBatchBarcodes = async (req, res) => {
+    try {
+        const { productIds } = req.body
+
+        if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+            return res.status(400).json({
+                error: 'Invalid request',
+                message: 'productIds array is required and must not be empty'
+            })
+        }
+
+        // Fetch products
+        const products = await Product.findAll({
+            where: {
+                id: productIds
+            }
+        })
+
+        if (products.length === 0) {
+            return res.status(404).json({
+                error: 'Products not found',
+                message: 'No products found with the provided IDs'
+            })
+        }
+
+        // Generate PDF
+        const doc = await generateBatchBarcodePDF(products)
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf')
+        res.setHeader('Content-Disposition', `attachment; filename=barcodes_batch.pdf`)
+
+        // Pipe PDF to response
+        doc.pipe(res)
+        doc.end()
+    } catch (error) {
+        console.error('Generate batch barcodes error:', error)
+        res.status(500).json({
+            error: 'Failed to generate batch barcodes',
+            message: error.message
+        })
+    }
+}
+
+/**
+ * Generate barcode labels PDF for all products or filtered by category
+ */
+export const generateBarcodeLabels = async (req, res) => {
+    try {
+        const { category, limit } = req.query
+        const labelsPerRow = parseInt(req.query.labelsPerRow) || 3
+        const showBorder = req.query.showBorder === 'true'
+
+        // Build query
+        const whereClause = {}
+        if (category) {
+            whereClause.category = category
+        }
+
+        const queryOptions = {
+            where: whereClause,
+            order: [['name', 'ASC']]
+        }
+
+        if (limit) {
+            queryOptions.limit = parseInt(limit)
+        }
+
+        // Fetch products
+        const products = await Product.findAll(queryOptions)
+
+        if (products.length === 0) {
+            return res.status(404).json({
+                error: 'Products not found',
+                message: 'No products found'
+            })
+        }
+
+        // Generate PDF
+        const doc = await generateBarcodeLabelsPDF(products, {
+            labelsPerRow,
+            showBorder
+        })
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf')
+        res.setHeader('Content-Disposition', `attachment; filename=barcode_labels.pdf`)
+
+        // Pipe PDF to response
+        doc.pipe(res)
+        doc.end()
+    } catch (error) {
+        console.error('Generate barcode labels error:', error)
+        res.status(500).json({
+            error: 'Failed to generate barcode labels',
+            message: error.message
+        })
+    }
+}
+
+/**
+ * Generate thermal-style simple label for a product (optimized for scanning)
+ */
+export const generateSimpleLabel = async (req, res) => {
+    try {
+        const productId = parseInt(req.params.id)
+        const product = await Product.findByPk(productId)
+
+        if (!product) {
+            return res.status(404).json({
+                error: 'Product not found',
+                message: `Product with ID ${productId} does not exist`
+            })
+        }
+
+        // Generate simple label PDF
+        const doc = await generateSimpleProductLabel(product)
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf')
+        res.setHeader('Content-Disposition', `attachment; filename=label_${product.sku}.pdf`)
+
+        // Pipe PDF to response
+        doc.pipe(res)
+        doc.end()
+    } catch (error) {
+        console.error('Generate simple label error:', error)
+        res.status(500).json({
+            error: 'Failed to generate simple label',
+            message: error.message
+        })
+    }
+}
+
+/**
+ * Generate thermal-style labels for multiple products
+ */
+export const generateThermalBarcodeLabels = async (req, res) => {
+    try {
+        const { category, limit } = req.query
+        const labelsPerRow = parseInt(req.query.labelsPerRow) || 3
+        const showBorder = req.query.showBorder === 'true'
+
+        // Build query
+        const whereClause = {}
+        if (category) {
+            whereClause.category = category
+        }
+
+        const queryOptions = {
+            where: whereClause,
+            order: [['name', 'ASC']]
+        }
+
+        if (limit) {
+            queryOptions.limit = parseInt(limit)
+        }
+
+        // Fetch products
+        const products = await Product.findAll(queryOptions)
+
+        if (products.length === 0) {
+            return res.status(404).json({
+                error: 'Products not found',
+                message: 'No products found'
+            })
+        }
+
+        // Generate thermal labels PDF
+        const doc = await generateThermalLabels(products, {
+            labelsPerRow,
+            showBorder
+        })
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf')
+        res.setHeader('Content-Disposition', `attachment; filename=thermal_labels.pdf`)
+
+        // Pipe PDF to response
+        doc.pipe(res)
+        doc.end()
+    } catch (error) {
+        console.error('Generate thermal labels error:', error)
+        res.status(500).json({
+            error: 'Failed to generate thermal labels',
+            message: error.message
+        })
+    }
+}
+
+/**
+ * Generate large scannable barcode for a product
+ */
+export const generateLargeScanBarcode = async (req, res) => {
+    try {
+        const productId = parseInt(req.params.id)
+        const product = await Product.findByPk(productId)
+
+        if (!product) {
+            return res.status(404).json({
+                error: 'Product not found',
+                message: `Product with ID ${productId} does not exist`
+            })
+        }
+
+        // Generate large barcode PDF
+        const doc = await generateLargeBarcodeForScanning(product)
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf')
+        res.setHeader('Content-Disposition', `attachment; filename=large_barcode_${product.sku}.pdf`)
+
+        // Pipe PDF to response
+        doc.pipe(res)
+        doc.end()
+    } catch (error) {
+        console.error('Generate large barcode error:', error)
+        res.status(500).json({
+            error: 'Failed to generate large barcode',
+            message: error.message
+        })
+    }
+}
+

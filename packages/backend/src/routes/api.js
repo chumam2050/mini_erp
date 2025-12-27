@@ -13,7 +13,13 @@ import {
     getProductById,
     createProduct,
     updateProduct,
-    deleteProduct
+    deleteProduct,
+    generateProductBarcode,
+    generateBatchBarcodes,
+    generateBarcodeLabels,
+    generateSimpleLabel,
+    generateThermalBarcodeLabels,
+    generateLargeScanBarcode
 } from '../controllers/productController.js'
 import {
     uploadProductMedia,
@@ -374,6 +380,213 @@ router.delete('/products/:id', authenticateToken, authorize('Administrator', 'Ma
  *         description: Product not found
  */
 router.post('/products/:id/media', authenticateToken, authorize('Administrator', 'Manager'), upload.array('files', 10), uploadProductMedia)
+
+/**
+ * @swagger
+ * /api/products/{id}/barcode:
+ *   get:
+ *     summary: Generate barcode PDF for a product
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: PDF file with barcode
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Product not found
+ */
+router.get('/products/:id/barcode', authenticateToken, generateProductBarcode)
+
+/**
+ * @swagger
+ * /api/products/barcodes/batch:
+ *   post:
+ *     summary: Generate barcodes PDF for multiple products
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - productIds
+ *             properties:
+ *               productIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 example: [1, 2, 3]
+ *     responses:
+ *       200:
+ *         description: PDF file with multiple barcodes
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Invalid request
+ */
+router.post('/products/barcodes/batch', authenticateToken, generateBatchBarcodes)
+
+/**
+ * @swagger
+ * /api/products/barcodes/labels:
+ *   get:
+ *     summary: Generate barcode labels PDF for products
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by category
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Limit number of products
+ *       - in: query
+ *         name: labelsPerRow
+ *         schema:
+ *           type: integer
+ *           default: 3
+ *         description: Number of labels per row
+ *       - in: query
+ *         name: showBorder
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Show border around labels
+ *     responses:
+ *       200:
+ *         description: PDF file with barcode labels
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: No products found
+ */
+router.get('/products/barcodes/labels', authenticateToken, generateBarcodeLabels)
+
+/**
+ * @swagger
+ * /api/products/{id}/label:
+ *   get:
+ *     summary: Generate simple thermal-style label (optimized for scanning)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: PDF file with simple label (thermal printer style)
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Product not found
+ */
+router.get('/products/:id/label', authenticateToken, generateSimpleLabel)
+
+/**
+ * @swagger
+ * /api/products/{id}/barcode/large:
+ *   get:
+ *     summary: Generate large scannable barcode
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: PDF file with large scannable barcode
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: Product not found
+ */
+router.get('/products/:id/barcode/large', authenticateToken, generateLargeScanBarcode)
+
+/**
+ * @swagger
+ * /api/products/barcodes/thermal:
+ *   get:
+ *     summary: Generate thermal-style barcode labels (compact, high-quality)
+ *     tags: [Products]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *         description: Filter by category
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Limit number of products
+ *       - in: query
+ *         name: labelsPerRow
+ *         schema:
+ *           type: integer
+ *           default: 3
+ *         description: Number of labels per row
+ *       - in: query
+ *         name: showBorder
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *         description: Show border around labels
+ *     responses:
+ *       200:
+ *         description: PDF file with thermal-style barcode labels
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       404:
+ *         description: No products found
+ */
+router.get('/products/barcodes/thermal', authenticateToken, generateThermalBarcodeLabels)
 
 /**
  * @swagger

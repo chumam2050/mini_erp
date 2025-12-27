@@ -120,7 +120,7 @@ function App() {
     })
 
     window.electronAPI.onMenuAbout(() => {
-      alert('Mini ERP - Point of Sales\nSupermarket Sejahtera\n\nA desktop POS application built with Electron')
+      alert('Mini ERP - Point of Sales')
     })
 
     // Focus barcode input on load
@@ -201,15 +201,10 @@ function App() {
     if (product) {
       console.log('Adding product to cart:', product.name)
       addToCart(product.id)
-      // Refocus after adding to cart
-      setTimeout(() => {
-        barcodeInputRef.current?.focus()
-      }, 100)
       return true
     } else {
       console.log('Product not found for barcode:', barcode)
       console.log('Available SKUs:', products.map(p => p.sku || p.barcode).join(', '))
-      alert('Produk tidak ditemukan!')
       // Refocus after alert
       setTimeout(() => {
         barcodeInputRef.current?.focus()
@@ -519,39 +514,27 @@ function App() {
       />
       
       <main className="flex-1 overflow-hidden bg-background">
-        <div className={`grid h-full gap-3 p-3 transition-all duration-300 ${
-          isProductListCollapsed 
-            ? 'grid-cols-[auto_1.2fr_1fr]' 
-            : 'grid-cols-[1fr_1fr_1fr]'
-        }`}>
-          <ProductList
-            products={products}
-            onAddProduct={addToCart}
-            formatPrice={formatPrice}
-            isCollapsed={isProductListCollapsed}
-            onToggleCollapse={() => setIsProductListCollapsed(!isProductListCollapsed)}
-            isLoading={isLoadingProducts}
-          />
-          
-          <CartItems
-            cart={cart}
-            selectedItemIndex={selectedItemIndex}
-            onSelectItem={setSelectedItemIndex}
-            onBarcodeInput={handleBarcodeInput}
-            barcodeInputRef={barcodeInputRef}
-            formatPrice={formatPrice}
-            onIncrementQuantity={incrementQuantity}
-            onDecrementQuantity={decrementQuantity}
-          />
+        <div className={`grid grid-cols-3 h-full gap-3 p-3 transition-all duration-300`}>
+          <div className='flex w-full col-span-2'>
+            <CartItems
+              className={`w-full`}
+              cart={cart}
+              selectedItemIndex={selectedItemIndex}
+              onSelectItem={setSelectedItemIndex}
+              onBarcodeInput={handleBarcodeInput}
+              barcodeInputRef={barcodeInputRef}
+              formatPrice={formatPrice}
+              onIncrementQuantity={incrementQuantity}
+              onDecrementQuantity={decrementQuantity}
+            />
+          </div>
           
           <div className="flex flex-col gap-3">
             <ActionButtons
               onChangeQty={changeQuantity}
               onClearAll={clearAllItems}
-              onInputMember={inputMember}
               onAddPlasticBag={addPlasticBag}
             />
-            
             <Summary
               cart={cart}
               formatPrice={formatPrice}

@@ -42,17 +42,17 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {} }) {
         </div>
       </CardContent>
 
-      <div className="grid grid-cols-3 border-t-2 border-border">
+      <div className="grid grid-cols-1 border-t-2 border-border">
         <Button 
           onClick={() => onCheckout('cash')}
-          className="h-24 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground flex-col gap-2 text-base font-bold border-r border-border"
+          className="h-24 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground flex-row gap-2 text-base font-bold border-r border-border"
         >
           <Wallet className="h-7 w-7" />
           <div className="text-center leading-tight">
-            TUNAI<br />(CASH)
+            BAYAR
           </div>
         </Button>
-        <Button 
+        {/* <Button 
           onClick={() => onCheckout('card')}
           className="h-24 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground flex-col gap-2 text-base font-bold border-r border-border"
         >
@@ -69,7 +69,7 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {} }) {
           <div className="text-center leading-tight">
             QRIS /<br />E-Wallet
           </div>
-        </Button>
+        </Button> */}
       </div>
     </Card>
   )
