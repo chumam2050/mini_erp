@@ -52,7 +52,7 @@ export default function LoginPage() {
               <LogIn className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-bold">MiniERP System</CardTitle>
+          <CardTitle className="text-3xl font-bold">RetaliQ - MiniERP</CardTitle>
           <CardDescription className="text-base">
             Masukkan email dan password untuk login
           </CardDescription>
@@ -74,7 +74,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="nama@example.com"
+                  placeholder="Masukkan email anda"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

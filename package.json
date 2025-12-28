@@ -1,5 +1,5 @@
 {
-    "name": "minierp",
+    "name": "retaliq",
     "version": "1.0.0",
     "private": true,
     "description": "Mini ERP System with React Frontend and Express Backend",
@@ -22,14 +22,11 @@
         "seed": "lerna run seed",
         "seed:backend": "lerna run seed --scope=@minierp/backend",
         "truncate:backend": "lerna run truncate --scope=@minierp/backend",
-    "compose:up": "docker-compose up -d --build",
-    "compose:down": "docker-compose down --volumes"
+        "compose:up": "docker-compose up -d --build",
+        "compose:down": "docker-compose down --volumes"
     },
     "devDependencies": {
-        "autoprefixer": "^10.4.23",
-        "lerna": "^8.0.0",
-        "postcss": "^8.5.6",
-        "tailwindcss": "^3.4.19"
+        "lerna": "^8.0.0"
     },
     "workspaces": [
         "packages/*"

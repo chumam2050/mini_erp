@@ -67,7 +67,7 @@ function Navbar() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Package className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-bold text-xl hidden sm:inline-block">MiniERP</span>
+              <span className="font-bold text-xl hidden sm:inline-block">RetaliQ - POS</span>
             </div>
 
             {/* Desktop Navigation */}

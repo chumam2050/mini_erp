@@ -19,12 +19,12 @@ function createWindow() {
     show: false,
     autoHideMenuBar: false,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.mjs'),
+      preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       nodeIntegration: false,
       contextIsolation: true
     },
-    title: 'Mini ERP - Point of Sales',
+    title: 'RetaliQ - POS',
     backgroundColor: '#2d3436'
   })
 
@@ -57,16 +57,8 @@ function createWindow() {
 function createMenu() {
   const template = [
     {
-      label: 'File',
+      label: 'Saya',
       submenu: [
-        {
-          label: 'New Sale',
-          accelerator: 'CmdOrCtrl+N',
-          click: () => {
-            mainWindow.webContents.send('menu-new-sale')
-          }
-        },
-        { type: 'separator' },
         {
           label: 'Exit',
           accelerator: 'CmdOrCtrl+Q',
@@ -110,7 +102,7 @@ function createMenu() {
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.eltheris.mini-erp-pos')
+  electronApp.setAppUserModelId('cloud.retaliq.mini-erp-pos')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -153,16 +145,7 @@ ipcMain.handle('get-app-version', () => {
 
 
 ipcMain.handle('get-api-config', () => {
-  return store.get('apiConfig')
-})
-
-// Seed apiConfig on first run if missing
-app.whenReady().then(() => {
-  const existing = store.get('apiConfig')
-  if (!existing) {
-    console.log('Seeding default apiConfig from constants (index)')
-    store.set('apiConfig', { baseUrl: constants.API_BASE_URL, timeout: constants.API_TIMEOUT })
-  }
+  return { baseUrl: 'https://minierp.retaliq.cloud', timeout: 5000 }
 })
 
 ipcMain.handle('set-api-config', (event, config) => {
@@ -196,11 +179,11 @@ ipcMain.handle('get-device-config', () => {
 ipcMain.handle('set-device-config', (event, config) => {
   console.log('Setting device config:', config)
   store.set('deviceConfig', config)
-  
+
   // Verify it was saved correctly
   const savedConfig = store.get('deviceConfig')
   console.log('Device config saved and verified:', savedConfig)
-  
+
   return true
 })
 
@@ -369,7 +352,7 @@ ipcMain.handle('print-receipt', async (event, saleData) => {
   try {
     const deviceConfig = store.get('deviceConfig')
     console.log('Print receipt - Device config:', deviceConfig)
-    
+
     const printerName = deviceConfig?.receiptPrinter
 
     if (!printerName) {
@@ -393,7 +376,7 @@ ipcMain.handle('print-receipt', async (event, saleData) => {
     await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(receiptHTML)}`)
 
     console.log('Print receipt - Sending to printer...')
-    
+
     return new Promise((resolve, reject) => {
       printWindow.webContents.print(
         {
@@ -431,7 +414,7 @@ ipcMain.handle('test-print', async () => {
   try {
     const deviceConfig = store.get('deviceConfig')
     console.log('Test print - Device config:', deviceConfig)
-    
+
     const printerName = deviceConfig?.receiptPrinter
 
     if (!printerName) {
@@ -491,7 +474,7 @@ ipcMain.handle('test-print', async () => {
     await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(testHTML)}`)
 
     console.log('Test print - Sending to printer...')
-    
+
     return new Promise((resolve, reject) => {
       printWindow.webContents.print(
         {
