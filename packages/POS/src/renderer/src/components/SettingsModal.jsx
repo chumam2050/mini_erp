@@ -45,7 +45,8 @@ function SettingsModal({ onClose }) {
   const handleTestPrint = async () => {
     // Validate printer selection
     if (!deviceConfig.receiptPrinter) {
-      alert('Silakan pilih printer terlebih dahulu!')
+      // show toast instead of alert
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Silakan pilih printer terlebih dahulu!', timeout: 5000 } }))
       return
     }
 
@@ -67,10 +68,10 @@ function SettingsModal({ onClose }) {
       }
       
       await window.electronAPI.testPrint()
-      alert('Test print berhasil! Cek printer Anda.')
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'success', message: 'Test print berhasil! Cek printer Anda.', timeout: 5000 } }))
     } catch (error) {
       console.error('Test print error:', error)
-      alert('Error test print: ' + error.message)
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Error test print: ' + error.message, timeout: 6000 } }))
     } finally {
       setIsTestingPrinter(false)
     }
@@ -79,10 +80,10 @@ function SettingsModal({ onClose }) {
   const handleSave = async () => {
     try {
       await window.electronAPI.setDeviceConfig(deviceConfig)
-      alert('Settings saved successfully!')
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'success', message: 'Settings saved successfully!', timeout: 4000 } }))
       onClose()
     } catch (error) {
-      alert('Error saving device config: ' + error.message)
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Error saving device config: ' + error.message, timeout: 6000 } }))
     }
   }
 
@@ -202,6 +203,26 @@ function SettingsModal({ onClose }) {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Auto print toggle */}
+              <div className="flex items-center justify-between mt-3">
+                <div>
+                  <div className="font-medium">Cetak struk otomatis</div>
+                  <div className="text-xs text-muted-foreground">Jika aktif, struk akan dicetak otomatis setelah pembayaran.</div>
+                </div>
+                <div>
+                  <button
+                    role="switch"
+                    aria-checked={deviceConfig.autoPrintReceipt !== false}
+                    onClick={() => setDeviceConfig({ ...deviceConfig, autoPrintReceipt: !(deviceConfig.autoPrintReceipt !== false) })}
+                    className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${deviceConfig.autoPrintReceipt !== false ? 'bg-primary' : 'bg-muted/30'}`}
+                    title={deviceConfig.autoPrintReceipt !== false ? 'Cetak struk otomatis: ON' : 'Cetak struk otomatis: OFF'}
+                  >
+                    <span className={`inline-block h-4 w-4 bg-white rounded-full transform transition-transform ${deviceConfig.autoPrintReceipt !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+              </div>
+
               {deviceConfig.receiptPrinter && (
                 <div className="text-xs space-y-1">
                   <p className="text-muted-foreground">

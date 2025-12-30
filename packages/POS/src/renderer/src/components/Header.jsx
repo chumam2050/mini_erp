@@ -4,29 +4,6 @@ import { Button } from './ui/button'
 import ThemeToggle from './ThemeToggle'
 
 function Header({ onSettingsClick, onShortcutsClick, currentUser, onLogout }) {
-  const [datetime, setDatetime] = useState('')
-
-  useEffect(() => {
-    const updateDateTime = () => {
-      const now = new Date()
-      const dateStr = now.toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      })
-      const timeStr = now.toLocaleTimeString('id-ID', {
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-      setDatetime(`${dateStr} - ${timeStr} WIB`)
-    }
-
-    updateDateTime()
-    const interval = setInterval(updateDateTime, 1000)
-
-    return () => clearInterval(interval)
-  }, [])
-
   return (
     <header className="bg-card border-b shadow-md">
       <div className="flex justify-between items-center px-6 py-4">
@@ -42,8 +19,6 @@ function Header({ onSettingsClick, onShortcutsClick, currentUser, onLogout }) {
                 </span>
               )}
             </span>
-            <span>{datetime}</span>
-            <span>Status: <span className="text-green-600 dark:text-green-400 font-semibold">Online</span></span>
           </div>
         </div>
         <div className="flex items-center gap-2">

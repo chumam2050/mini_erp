@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Wallet, CreditCard, Smartphone } from 'lucide-react'
+import { Wallet, CreditCard, Smartphone, Loader2 } from 'lucide-react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 
-function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef = null }) {
+function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef = null, isProcessing = false }) {
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const taxRate = posSettings.taxRate || 11
   const defaultDiscount = posSettings.defaultDiscount || 0
@@ -81,11 +81,11 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
             if (ok) setCashAmount('')
           }}
           className="h-24 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground flex-row gap-2 text-base font-bold border-r border-border"
-          disabled={!total}
+          disabled={!total || isProcessing}
         >
-          <Wallet className="h-7 w-7" />
+          {isProcessing ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Wallet className="h-7 w-7" />}
           <div className="text-center leading-tight">
-            BAYAR
+            {isProcessing ? 'Memproses...' : 'BAYAR'}
           </div>
         </Button>
         {/* <Button 

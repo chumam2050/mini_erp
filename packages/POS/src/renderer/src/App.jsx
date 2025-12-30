@@ -6,6 +6,10 @@ import ActionButtons from './components/ActionButtons'
 import Summary from './components/Summary'
 import SettingsModal from './components/SettingsModal'
 import ShortcutsModal from './components/ShortcutsModal'
+import PaymentResultModal from './components/PaymentResultModal'
+import ConfirmModal from './components/ConfirmModal'
+import ProcessingModal from './components/ProcessingModal'
+import Toaster from './components/Toaster'
 import LoginPage from './pages/LoginPage'
 import { isAuthenticated, getCurrentUser, logout } from './utils/auth'
 import { getProducts, getPosSettings, createSale } from './utils/api'
@@ -102,7 +106,7 @@ function App() {
       }
     } catch (error) {
       console.error('Error fetching products:', error)
-      alert('Gagal memuat produk: ' + error.message)
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Gagal memuat produk: ' + error.message, timeout: 6000 } }))
     } finally {
       setIsLoadingProducts(false)
     }
@@ -153,7 +157,7 @@ function App() {
     })
 
     window.electronAPI.onMenuAbout(() => {
-      alert('Mini ERP - Point of Sales')
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'info', message: 'Mini ERP - Point of Sales', timeout: 3000 } }))
     })
 
     window.electronAPI.onMenuShortcuts(() => {
@@ -285,7 +289,7 @@ function App() {
             console.log('Incrementing quantity for product', productId, 'from', updated[existingIndex].quantity, 'to', updated[existingIndex].quantity + 1)
             updated[existingIndex] = { ...updated[existingIndex], quantity: updated[existingIndex].quantity + 1 }
           } else {
-            alert('Stok tidak mencukupi!')
+            window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Stok tidak mencukupi!', timeout: 4000 } }))
             return prev
           }
           return updated
@@ -306,7 +310,7 @@ function App() {
 
   const changeQuantity = async () => {
     if (selectedItemIndex === null) {
-      alert('Pilih item terlebih dahulu!')
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'warning', message: 'Pilih item terlebih dahulu!', timeout: 3000 } }))
       return
     }
 
@@ -332,7 +336,7 @@ function App() {
 
       // Check stock if available
       if (item.stock && item.quantity >= item.stock) {
-        alert(`Stok tidak mencukupi! Stok tersedia: ${item.stock}`)
+        window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'warning', message: `Stok tidak mencukupi! Stok tersedia: ${item.stock}`, timeout: 4000 } }))
         return prev
       }
       item.quantity++
@@ -341,35 +345,45 @@ function App() {
     })
   }
 
-  const decrementQuantity = (index) => {
-    setCart(prev => {
-      const updated = [...prev]
-      if (updated[index].quantity > 1) {
-        updated[index].quantity--
-        return updated
-      } else {
-        // Remove item if quantity becomes 0
-        if (confirm('Hapus item dari keranjang?')) {
-          updated.splice(index, 1)
-          if (selectedItemIndex === index) {
-            setSelectedItemIndex(null)
-          } else if (selectedItemIndex > index) {
-            setSelectedItemIndex(selectedItemIndex - 1)
-          }
-          return updated
-        }
-      }
-      return prev
-    })
-  }
+  const decrementQuantity = async (index) => {
+    const item = {...cart[index]}
+    if (!item) return
 
-  const clearAllItems = () => {
-    if (cart.length === 0) {
-      alert('Keranjang sudah kosong!')
+    if (item.quantity > 1) {
+      item.quantity--
+      setCart(prev => {
+        const updated = [...prev]
+        updated[index] = {...item}
+        return updated
+      })
       return
     }
 
-    if (confirm('Hapus semua item dari keranjang?')) {
+    // If quantity == 1, ask confirmation before removing
+    const ok = await showConfirm('Hapus item dari keranjang?')
+    if (ok) {
+      setCart(prev => {
+        const updated = [...prev]
+        updated.splice(index, 1)
+        return updated
+      })
+
+      if (selectedItemIndex === index) {
+        setSelectedItemIndex(null)
+      } else if (selectedItemIndex > index) {
+        setSelectedItemIndex(selectedItemIndex - 1)
+      }
+    }
+  }
+
+  const clearAllItems = async () => {
+    if (cart.length === 0) {
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'warning', message: 'Keranjang sudah kosong!', timeout: 3000 } }))
+      return
+    }
+
+    const ok = await showConfirm('Hapus semua item dari keranjang?')
+    if (ok) {
       setCart([])
       setSelectedItemIndex(null)
       barcodeInputRef.current?.focus()
@@ -385,7 +399,7 @@ function App() {
   const inputMember = async () => {
     const memberId = await showPrompt('Masukkan ID Member:')
     if (memberId) {
-      alert(`Member ${memberId} berhasil ditambahkan!`)
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'success', message: `Member ${memberId} berhasil ditambahkan!`, timeout: 3000 } }))
       // TODO: Apply member discount
     }
   }
@@ -415,9 +429,34 @@ function App() {
     })
   }
 
+  const [paymentResult, setPaymentResult] = useState(null)
+  const [isProcessingSale, setIsProcessingSale] = useState(false)
+
+  const closePaymentResult = () => {
+    setPaymentResult(null)
+  }
+
+  // Global confirmation modal state + helper
+  const [confirmState, setConfirmState] = useState({ visible: false, title: '', message: '', resolver: null })
+
+  const showConfirm = (message, title = 'Konfirmasi') => {
+    return new Promise((resolve) => {
+      setConfirmState({ visible: true, title, message, resolver: resolve })
+    })
+  }
+
+  const handleConfirm = (value) => {
+    try {
+      confirmState.resolver?.(value)
+    } catch (e) {
+      console.error('confirm resolve error', e)
+    }
+    setConfirmState({ visible: false, title: '', message: '', resolver: null })
+  }
+
   const checkout = async (paymentMethod, amountFromSummary = null) => {
     if (cart.length === 0) {
-      alert('Keranjang kosong!')
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'warning', message: 'Keranjang kosong!', timeout: 3000 } }))
       return false
     }
 
@@ -434,22 +473,22 @@ function App() {
       } else {
         const cashAmount = await showPrompt(`Total: Rp ${formatPrice(total)}\n\nMasukkan jumlah uang tunai:`)
         if (!cashAmount || isNaN(cashAmount) || parseInt(cashAmount) < total) {
-          alert('Jumlah uang tidak mencukupi!')
+          window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Jumlah uang tidak mencukupi!', timeout: 4000 } }))
           return false
         }
         amountPaid = parseInt(cashAmount)
       }
 
-      const change = amountPaid - total
-      alert(`Pembayaran berhasil!\n\nTotal: Rp ${formatPrice(total)}\nBayar: Rp ${formatPrice(amountPaid)}\nKembalian: Rp ${formatPrice(change)}`)
+      // remove immediate alert — show modal after successful sale
     } else {
       const paymentMethodName = paymentMethod === 'card' ? 'Kartu (EDC)' : 'QRIS / E-Wallet'
-      if (!confirm(`Proses pembayaran dengan ${paymentMethodName}?\n\nTotal: Rp ${formatPrice(total)}`)) {
+      if (!(await showConfirm(`Proses pembayaran dengan ${paymentMethodName}?\n\nTotal: Rp ${formatPrice(total)}`))) {
         return false
       }
-      alert('Pembayaran berhasil!')
+      // remove immediate alert — show modal after successful sale
     }
 
+    setIsProcessingSale(true)
     try {
       // Prepare sale data for backend
       const saleData = {
@@ -492,31 +531,46 @@ function App() {
       if (response.success) {
         console.log('Sale created successfully:', response.data)
         
-        // Print receipt
+        // Build receipt data (always create so reprint is possible)
+        const receiptData = {
+          saleNumber: response.data.saleNumber,
+          items: cart.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          subtotal: subtotal,
+          discount: discountAmount,
+          tax: tax,
+          total: total,
+          paymentMethod: paymentMethod,
+          amountPaid: amountPaid,
+          change: amountPaid - total,
+          cashier: currentUser?.name || 'Unknown',
+          settings: posSettings
+        }
+
+        // Check device config to see if auto-print is enabled
         try {
-          const receiptData = {
-            saleNumber: response.data.saleNumber,
-            items: cart.map(item => ({
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price
-            })),
-            subtotal: subtotal,
-            discount: discountAmount,
-            tax: tax,
-            total: total,
-            paymentMethod: paymentMethod,
-            amountPaid: amountPaid,
-            change: amountPaid - total,
-            cashier: currentUser?.name || 'Unknown',
-            settings: posSettings
+          const deviceCfg = await window.electronAPI.getDeviceConfig()
+          const autoPrint = deviceCfg?.autoPrintReceipt !== false
+
+          if (autoPrint) {
+            try {
+              await window.electronAPI.printReceipt(receiptData)
+              console.log('Receipt printed automatically')
+            } catch (printError) {
+              console.error('Error printing receipt automatically:', printError)
+              // don't fail the sale; user can reprint manually
+            }
           }
-          
-          await window.electronAPI.printReceipt(receiptData)
-          console.log('Receipt printed')
-        } catch (printError) {
-          console.error('Error printing receipt:', printError)
-          // Don't fail the whole transaction if printing fails
+
+          // Show payment result modal with reprint action (receiptData provided regardless)
+          setPaymentResult({ total, paid: amountPaid, change: amountPaid - total, receiptData })
+        } catch (err) {
+          console.error('Error checking device config or printing:', err)
+          // still show result
+          setPaymentResult({ total, paid: amountPaid, change: amountPaid - total, receiptData })
         }
         
         // Update local stock
@@ -539,8 +593,10 @@ function App() {
       }
     } catch (error) {
       console.error('Error processing sale:', error)
-      alert('Error memproses transaksi: ' + error.message)
+      window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Error memproses transaksi: ' + error.message, timeout: 6000 } }))
       return false
+    } finally {
+      setIsProcessingSale(false)
     }
   }
 
@@ -558,7 +614,8 @@ function App() {
   }
 
   const handleLogout = async () => {
-    if (confirm('Anda yakin ingin logout?')) {
+    const ok = await showConfirm('Anda yakin ingin logout?')
+    if (ok) {
       await logout()
       setIsLoggedIn(false)
       setCurrentUser(null)
@@ -595,6 +652,17 @@ function App() {
         <ShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}
 
+      <Toaster />
+
+      {confirmState.visible && (
+        <ConfirmModal
+          title={confirmState.title}
+          message={confirmState.message}
+          onConfirm={() => handleConfirm(true)}
+          onCancel={() => handleConfirm(false)}
+        />
+      )}
+
       <main className="flex-1 overflow-hidden bg-background">
         <div className={`grid grid-cols-3 h-full gap-3 p-3 transition-all duration-300`}>
           <div className='flex w-full col-span-2'>
@@ -625,7 +693,22 @@ function App() {
               onCheckout={checkout}
               posSettings={posSettings}
               cashInputRef={cashInputRef}
+              isProcessing={isProcessingSale}
             />
+
+            {paymentResult && (
+              <PaymentResultModal
+                total={paymentResult.total}
+                paid={paymentResult.paid}
+                change={paymentResult.change}
+                onClose={closePaymentResult}
+                onReprint={paymentResult.receiptData ? async () => { try { await window.electronAPI.printReceipt(paymentResult.receiptData); window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'success', message: 'Reprint sukses', timeout: 3000 } })); } catch (e) { window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Reprint gagal: ' + e.message, timeout: 6000 } })); } } : null }
+              />
+            )}
+
+            {isProcessingSale && (
+              <ProcessingModal />
+            )}
           </div>
         </div>
       </main>
