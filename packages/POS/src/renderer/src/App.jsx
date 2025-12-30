@@ -309,13 +309,18 @@ function App() {
   const incrementQuantity = (index) => {
     setCart(prev => {
       const updated = [...prev]
-      const item = updated[index]
+      const item = { ...updated[index] }
+      if (!item) return prev
+
+      console.log('Incrementing quantity for item at index', index, 'current quantity:', item.quantity)
+
       // Check stock if available
       if (item.stock && item.quantity >= item.stock) {
         alert(`Stok tidak mencukupi! Stok tersedia: ${item.stock}`)
         return prev
       }
-      updated[index].quantity++
+      item.quantity++
+      updated[index] = item
       return updated
     })
   }
@@ -581,6 +586,8 @@ function App() {
               onBarcodeInput={handleBarcodeInput}
               barcodeInputRef={barcodeInputRef}
               formatPrice={formatPrice}
+              onAddProduct={(productId) => addToCart(productId)}
+              products={products}
               onIncrementQuantity={incrementQuantity}
               onDecrementQuantity={decrementQuantity}
             />
