@@ -86,6 +86,12 @@ function createMenu() {
       label: 'Help',
       submenu: [
         {
+          label: 'Shortcuts',
+          click: () => {
+            mainWindow.webContents.send('menu-shortcuts')
+          }
+        },
+        {
           label: 'About',
           click: () => {
             mainWindow.webContents.send('menu-about')

@@ -24,6 +24,9 @@ const electronAPIX = {
   onMenuAbout: (callback) => {
     ipcRenderer.on('menu-about', callback)
   },
+  onMenuShortcuts: (callback) => {
+    ipcRenderer.on('menu-shortcuts', callback)
+  },
   // Remove listeners
   removeListener: (channel, callback) => {
     ipcRenderer.removeListener(channel, callback)

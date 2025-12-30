@@ -5,6 +5,7 @@ import ProductList from './components/ProductList'
 import ActionButtons from './components/ActionButtons'
 import Summary from './components/Summary'
 import SettingsModal from './components/SettingsModal'
+import ShortcutsModal from './components/ShortcutsModal'
 import LoginPage from './pages/LoginPage'
 import { isAuthenticated, getCurrentUser, logout } from './utils/auth'
 import { getProducts, getPosSettings, createSale } from './utils/api'
@@ -29,6 +30,7 @@ function App() {
     enableDiscount: true
   })
   const barcodeInputRef = useRef(null)
+  const cashInputRef = useRef(null)
   // Simple in-app prompt modal state + helper (replaces window.prompt which isn't supported)
   const [promptState, setPromptState] = useState({ visible: false, title: '', defaultValue: '' })
   const promptResolverRef = useRef(null)
@@ -54,6 +56,8 @@ function App() {
   }
 
   // Check authentication on mount
+  const [showShortcuts, setShowShortcuts] = useState(false)
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -152,6 +156,10 @@ function App() {
       alert('Mini ERP - Point of Sales')
     })
 
+    window.electronAPI.onMenuShortcuts(() => {
+      setShowShortcuts(true)
+    })
+
     // Focus barcode input on load
     setTimeout(() => {
       barcodeInputRef.current?.focus()
@@ -162,6 +170,14 @@ function App() {
     let scannerTimeout = null
     
     const handleKeyDown = (e) => {
+      // Shortcut: Ctrl+T (or F9) focuses the cash input (Tunai)
+      if ((e.ctrlKey && e.key.toLowerCase() === 't') || e.key === 'F9') {
+        e.preventDefault()
+        cashInputRef.current?.focus()
+        if (cashInputRef.current?.select) cashInputRef.current.select()
+        return
+      }
+
       // Don't interfere with typing in the barcode input itself
       if (e.target === barcodeInputRef.current) {
         return
@@ -571,10 +587,14 @@ function App() {
     <div className="flex flex-col h-screen bg-background text-foreground">
       <Header 
         onSettingsClick={() => setShowSettings(true)}
+        onShortcutsClick={() => setShowShortcuts(true)}
         currentUser={currentUser}
         onLogout={handleLogout}
       />
-      
+      {showShortcuts && (
+        <ShortcutsModal onClose={() => setShowShortcuts(false)} />
+      )}
+
       <main className="flex-1 overflow-hidden bg-background">
         <div className={`grid grid-cols-3 h-full gap-3 p-3 transition-all duration-300`}>
           <div className='flex w-full col-span-2'>
@@ -604,6 +624,7 @@ function App() {
               formatPrice={formatPrice}
               onCheckout={checkout}
               posSettings={posSettings}
+              cashInputRef={cashInputRef}
             />
           </div>
         </div>

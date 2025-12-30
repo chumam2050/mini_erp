@@ -3,7 +3,7 @@ import { Settings, LogOut, User } from 'lucide-react'
 import { Button } from './ui/button'
 import ThemeToggle from './ThemeToggle'
 
-function Header({ onSettingsClick, currentUser, onLogout }) {
+function Header({ onSettingsClick, onShortcutsClick, currentUser, onLogout }) {
   const [datetime, setDatetime] = useState('')
 
   useEffect(() => {
@@ -48,6 +48,18 @@ function Header({ onSettingsClick, currentUser, onLogout }) {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onShortcutsClick}
+            className="h-9 w-9 hover:bg-accent"
+            title="Shortcuts"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="4" width="18" height="16" rx="2" />
+              <path d="M8 8h.01M8 12h.01M8 16h.01M12 8h4M12 12h4M12 16h4" />
+            </svg>
+          </Button>
           <Button 
             variant="ghost" 
             size="icon"

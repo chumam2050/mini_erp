@@ -3,7 +3,7 @@ import { Wallet, CreditCard, Smartphone } from 'lucide-react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 
-function Summary({ cart, formatPrice, onCheckout, posSettings = {} }) {
+function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef = null }) {
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const taxRate = posSettings.taxRate || 11
   const defaultDiscount = posSettings.defaultDiscount || 0
@@ -53,6 +53,8 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {} }) {
           <div className="flex justify-between text-2xl items-center">
             <span className="text-muted-foreground">Tunai (Bayar):</span>
             <input
+              ref={cashInputRef}
+              id="pos-cash-input"
               type="number"
               min="0"
               step="100"
