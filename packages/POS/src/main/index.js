@@ -145,7 +145,7 @@ ipcMain.handle('get-app-version', () => {
 
 
 ipcMain.handle('get-api-config', () => {
-  return { baseUrl: 'https://minierp.retaliq.cloud', timeout: 5000 }
+  return { baseUrl: 'http://localhost:5000', timeout: 5000 }
 })
 
 ipcMain.handle('set-api-config', (event, config) => {

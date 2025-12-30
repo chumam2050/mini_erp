@@ -3,20 +3,49 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mini ERP - Download</title>
+  <title>Mini ERP — Download</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="container">
-    <h1>Mini ERP</h1>
-    <p class="lead">Download the Mini ERP Windows app for easy POS and inventory management.</p>
+  <main class="page">
+    <header class="brand">
+      <div class="logo">Mini<span class="accent">ERP</span></div>
+      <nav class="links">
+        <a href="https://minierp.retaliq.cloud" target="_blank" rel="noopener">Web App</a>
+        <a href="https://github.com/retaliq/mini_erp" target="_blank" rel="noopener">Repository</a>
+      </nav>
+    </header>
 
-    <a class="btn" href="" download>
-      Download Mini ERP (Windows)
-    </a>
+    <section class="hero">
+      <div class="hero-content">
+        <h1>Mini ERP</h1>
+        <p class="lead">Fast, minimal Point-of-Sale desktop app with a companion web dashboard for managing inventory, users, and reports.</p>
 
-    <footer>
-      <small>Built with ❤️ by the Mini ERP team</small>
+        <div class="actions">
+          <a class="btn primary" href="/downloads/minierp-pos-setup.exe" download>Download for Windows (.exe)</a>
+          <a class="btn ghost" href="https://minierp.retaliq.cloud" target="_blank" rel="noopener">Open Web App</a>
+        </div>
+
+        <ul class="features" aria-hidden="false">
+          <li>Offline-capable desktop POS</li>
+          <li>Auto-updates and secure installs</li>
+          <li>Web dashboard for management</li>
+        </ul>
+
+        <p class="note">If you host the site yourself, put the installer at <code>/downloads/minierp-pos-setup.exe</code>.</p>
+      </div>
+
+      <aside class="hero-visual" aria-hidden="true">
+        <div class="card">
+          <div class="badge">Windows</div>
+          <div class="file">minierp-pos-setup.exe</div>
+          <small class="version">v1.0.0</small>
+        </div>
+      </aside>
+    </section>
+
+    <footer class="site-footer">
+      <small>Built with ❤️ by the Mini ERP team • <a href="https://minierp.retaliq.cloud/auto-updates">Updates</a></small>
     </footer>
   </main>
 </body>
