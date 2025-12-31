@@ -36,7 +36,11 @@ function SettingsModal({ onClose }) {
   const loadDeviceConfig = async () => {
     try {
       const config = await window.electronAPI.getDeviceConfig()
-      setDeviceConfig(config)
+      // Normalize cashShortcuts to a comma-separated string for the input
+      if (config && config.cashShortcuts && Array.isArray(config.cashShortcuts)) {
+        config.cashShortcuts = config.cashShortcuts.join(',')
+      }
+      setDeviceConfig(config || {})
     } catch (error) {
       console.error('Error loading device config:', error)
     }
@@ -80,6 +84,8 @@ function SettingsModal({ onClose }) {
   const handleSave = async () => {
     try {
       await window.electronAPI.setDeviceConfig(deviceConfig)
+      // Notify app that device config changed so UI (e.g. cash shortcuts) can reload
+      window.dispatchEvent(new CustomEvent('device-config-updated'))
       window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'success', message: 'Settings saved successfully!', timeout: 4000 } }))
       onClose()
     } catch (error) {
@@ -221,6 +227,20 @@ function SettingsModal({ onClose }) {
                     <span className={`inline-block h-4 w-4 bg-white rounded-full transform transition-transform ${deviceConfig.autoPrintReceipt !== false ? 'translate-x-5' : 'translate-x-1'}`} />
                   </button>
                 </div>
+              </div>
+
+              {/* Cash shortcuts (Tunai) - configurable */}
+              <div className="mt-4">
+                <Label htmlFor="cash-shortcuts" className="text-sm">Cash Shortcuts (Tunai)</Label>
+                <div className="text-xs text-muted-foreground mb-2">Masukkan nilai dipisah dengan koma, misal: 2000,5000,10000,20000,50000,100000</div>
+                <input
+                  id="cash-shortcuts"
+                  type="text"
+                  value={deviceConfig.cashShortcuts || ''}
+                  onChange={(e) => setDeviceConfig({ ...deviceConfig, cashShortcuts: e.target.value })}
+                  placeholder="2000,5000,10000,20000,50000,100000"
+                  className="w-full h-10 px-3 border rounded"
+                />
               </div>
 
               {deviceConfig.receiptPrinter && (

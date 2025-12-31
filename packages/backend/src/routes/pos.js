@@ -5,6 +5,7 @@ import {
     createSale,
     cancelSale,
     getSalesSummary,
+    getSalesRevenue,
     getProductsForPOS,
     getTopProducts
 } from '../controllers/posController.js'
@@ -193,6 +194,9 @@ router.get('/sales', getAllSales)
  *               $ref: '#/components/schemas/POSErrorResponse'
  */
 router.get('/sales/summary', getSalesSummary)
+// Add an unambiguous route name to avoid matching param routes (e.g. /sales/:id)
+router.get('/sales/revenue', getSalesRevenue)
+router.get('/sales/revenue-data', getSalesRevenue)
 
 /**
  * @swagger

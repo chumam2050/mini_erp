@@ -31,7 +31,9 @@ function App() {
     taxRate: 11,
     defaultDiscount: 0,
     enableTax: true,
-    enableDiscount: true
+    enableDiscount: true,
+    // default cash shortcut buttons (will be overridden by device config if present)
+    cashShortcuts: [2000, 5000, 10000, 20000, 50000, 100000]
   })
   const barcodeInputRef = useRef(null)
   const cashInputRef = useRef(null)
@@ -148,6 +150,20 @@ function App() {
       
       const config = await window.electronAPI.getApiConfig()
       if (config) setApiConfig(config)
+
+      // Load device config (cash shortcut buttons) if present
+      try {
+        const deviceConfig = await window.electronAPI.getDeviceConfig()
+        if (deviceConfig && deviceConfig.cashShortcuts) {
+          let shortcuts = deviceConfig.cashShortcuts
+          if (typeof shortcuts === 'string') {
+            shortcuts = shortcuts.split(',').map(s => parseInt(s.trim())).filter(Boolean)
+          }
+          setPosSettings(prev => ({ ...prev, cashShortcuts: shortcuts }))
+        }
+      } catch (err) {
+        console.error('Error loading device config:', err)
+      }
     }
     loadData()
 
@@ -163,6 +179,23 @@ function App() {
     window.electronAPI.onMenuShortcuts(() => {
       setShowShortcuts(true)
     })
+
+    // Listener for when device config updates (e.g. cash shortcuts changed from Settings)
+    const handleDeviceConfigUpdated = async () => {
+      try {
+        const deviceConfig = await window.electronAPI.getDeviceConfig()
+        if (deviceConfig && deviceConfig.cashShortcuts) {
+          let shortcuts = deviceConfig.cashShortcuts
+          if (typeof shortcuts === 'string') {
+            shortcuts = shortcuts.split(',').map(s => parseInt(s.trim())).filter(Boolean)
+          }
+          setPosSettings(prev => ({ ...prev, cashShortcuts: shortcuts }))
+        }
+      } catch (err) {
+        console.error('Error reloading device config:', err)
+      }
+    }
+    window.addEventListener('device-config-updated', handleDeviceConfigUpdated)
 
     // Focus barcode input on load
     setTimeout(() => {
@@ -224,6 +257,7 @@ function App() {
       document.removeEventListener('keydown', handleKeyDown)
       document.removeEventListener('click', handleGlobalClick)
       if (scannerTimeout) clearTimeout(scannerTimeout)
+      window.removeEventListener('device-config-updated', handleDeviceConfigUpdated)
     }
   }, [isLoggedIn])
 
@@ -606,6 +640,8 @@ function App() {
 
   const closeSettings = () => {
     setShowSettings(false)
+    // Refresh POS settings after closing
+    fetchPosSettings()
   }
 
   const handleLoginSuccess = (user, token) => {

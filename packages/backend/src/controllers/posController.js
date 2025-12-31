@@ -88,6 +88,7 @@ export const getAllSales = async (req, res) => {
 
 // Get sale by ID
 export const getSaleById = async (req, res) => {
+    console.log('[posController] getSaleById called with id:', req.params.id)
     try {
         const { id } = req.params
 
@@ -491,6 +492,74 @@ export const getSalesSummary = async (req, res) => {
             message: 'Error fetching sales summary',
             error: error.message
         })
+    }
+}
+
+// Get revenue/time series for a period
+export const getSalesRevenue = async (req, res) => {
+    console.log('[posController] getSalesRevenue called with query:', req.query)
+    try {
+        const { period = 'today' } = req.query
+        const now = new Date()
+        let dateFilter = {}
+
+        switch (period) {
+            case 'today':
+                const startOfDay = new Date(now)
+                startOfDay.setHours(0, 0, 0, 0)
+                const endOfDay = new Date(now)
+                endOfDay.setHours(23, 59, 59, 999)
+                dateFilter = {
+                    saleDate: {
+                        [Op.between]: [startOfDay, endOfDay]
+                    }
+                }
+                break
+            case 'week':
+                const startOfWeek = new Date(now)
+                startOfWeek.setDate(now.getDate() - now.getDay())
+                startOfWeek.setHours(0, 0, 0, 0)
+                dateFilter = {
+                    saleDate: {
+                        [Op.gte]: startOfWeek
+                    }
+                }
+                break
+            case 'month':
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+                dateFilter = {
+                    saleDate: {
+                        [Op.gte]: startOfMonth
+                    }
+                }
+                break
+            case 'all':
+                dateFilter = {}
+                break
+        }
+
+        const rows = await Sale.findAll({
+            where: {
+                ...dateFilter,
+                status: 'completed'
+            },
+            attributes: [
+                [sequelize.fn('DATE', sequelize.col('saleDate')), 'date'],
+                [sequelize.fn('SUM', sequelize.col('total')), 'total']
+            ],
+            group: [sequelize.fn('DATE', sequelize.col('saleDate'))],
+            order: [[sequelize.fn('DATE', sequelize.col('saleDate')), 'ASC']],
+            raw: true
+        })
+
+        const revenue = rows.map(r => ({
+            date: r.date,
+            total: Number(r.total) || 0
+        }))
+
+        res.json({ success: true, data: { period, revenue } })
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error fetching revenue', error: error.message })
     }
 }
 

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Wallet, CreditCard, Smartphone, Loader2 } from 'lucide-react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
+
 
 function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef = null, isProcessing = false }) {
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
@@ -9,7 +10,7 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
   const defaultDiscount = posSettings.defaultDiscount || 0
   const enableTax = posSettings.enableTax !== false
   const enableDiscount = posSettings.enableDiscount !== false
-  
+
   const tax = enableTax ? subtotal * (taxRate / 100) : 0
   const discount = enableDiscount ? subtotal * (defaultDiscount / 100) : 0
   const total = Math.round(subtotal + tax - discount)
@@ -18,6 +19,32 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
   const [cashAmount, setCashAmount] = useState('')
   const parsedCash = parseInt(cashAmount || '0')
   const canPayWithCash = parsedCash >= total && total > 0
+
+  // Cash shortcuts (single click: set amount, double-click: add amount)
+  const clickTimerRef = useRef(null)
+  const defaultShortcuts = [2000, 5000, 10000, 20000, 50000, 100000]
+  const cashShortcuts = (() => {
+    console.log('posSettings.cashShortcuts', posSettings)
+    if (!posSettings) return defaultShortcuts
+    const s = posSettings.cashShortcuts
+    if (!s) return defaultShortcuts
+    if (Array.isArray(s)) return s
+    if (typeof s === 'string') {
+      return s.split(',').map(x => parseInt(x.trim())).filter(Boolean)
+    }
+    return defaultShortcuts
+  })()
+
+  useEffect(() => {
+    return () => {
+      if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+    }
+  }, [])
+
+  const handleShortcutClick = (value) => {
+    // Detect double click via short timeout
+     setCashAmount((prev) => String((Number(prev) || 0) + value))
+  }
 
   return (
     <Card className="flex flex-col h-full overflow-hidden">
@@ -48,6 +75,22 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
           <span>Rp {formatPrice(total)}</span>
         </div>
 
+        {/* Cash shortcut buttons */}
+        <div className="grid grid-cols-3 gap-2">
+          {cashShortcuts.map((nom) => (
+            <Button
+              key={nom}
+              variant="outline"
+              size="xl"
+              className="h-10 text-start w-full px-3"
+              onClick={() => handleShortcutClick(nom)}
+              title="Klik: set; Double click: tambah"
+            >
+              Rp {formatPrice(nom)}
+            </Button>
+          ))}
+        </div>
+
         {/* Cash input placed below total */}
         <div className="flex flex-col gap-2 pt-3">
           <div className="flex justify-between text-2xl items-center">
@@ -60,9 +103,16 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
               step="100"
               value={cashAmount}
               onChange={(e) => setCashAmount(e.target.value)}
-              className="w-40 text-right border rounded p-1 bg-white text-black"
+              className="w-60 text-right border rounded p-1 bg-white text-black"
               placeholder="0"
             />
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setCashAmount('')}
+            >
+              Clear
+            </Button>
           </div>
 
           {canPayWithCash && (
@@ -75,7 +125,7 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
       </CardContent>
 
       <div className="grid grid-cols-1 border-t-2 border-border">
-        <Button 
+        <Button
           onClick={async () => {
             const ok = await onCheckout('cash', canPayWithCash ? parsedCash : null)
             if (ok) setCashAmount('')

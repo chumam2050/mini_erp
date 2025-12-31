@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, ipcMain, Menu, autoUpdater, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import Store from 'electron-store'
@@ -108,7 +108,7 @@ function createMenu() {
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('cloud.retaliq.mini-erp-pos')
+  electronApp.setAppUserModelId('cloud.retaliq.minierp')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -121,6 +121,11 @@ app.whenReady().then(() => {
   app.on('activate', function () {
     // On macOS it's common to re-create a window when dock icon is clicked
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
+
+  app.on('ready', function () {
+    // Check for updates on app ready
+    autoUpdater.checkForUpdatesAndNotify();
   })
 })
 
@@ -151,7 +156,7 @@ ipcMain.handle('get-app-version', () => {
 
 
 ipcMain.handle('get-api-config', () => {
-  return { baseUrl: 'http://localhost:5000', timeout: 5000 }
+  return { baseUrl: 'https://minierp.retaliq.cloud', timeout: 5000 }
 })
 
 ipcMain.handle('set-api-config', (event, config) => {
@@ -241,10 +246,11 @@ function generateReceiptHTML(saleData) {
             font-size: 10px;
             width: 58mm;
             max-width: 58mm;
-            margin: 0;
+            margin: auto;
             padding: 3mm 2mm; /* further reduced horizontal padding to avoid clipping */
             line-height: 1.3;
             overflow: visible;
+            font-weight: bold;
             -webkit-print-color-adjust: exact;
           }
           .header {

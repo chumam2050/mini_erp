@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import Navbar from '@/components/Navbar'
 import { Activity, TrendingUp, Package, BarChart2 } from 'lucide-react'
@@ -14,6 +15,9 @@ export default function DashboardPage() {
   const [topProducts, setTopProducts] = useState([])
   const [paymentMethods, setPaymentMethods] = useState([])
   const [period, setPeriod] = useState('month')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [revenueData, setRevenueData] = useState([])
+  const [revenueLoading, setRevenueLoading] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -32,6 +36,18 @@ export default function DashboardPage() {
           setPaymentMethods(sResp.data.data.paymentMethods || [])
         }
         if (tResp.data?.success) setTopProducts(tResp.data.data.top)
+
+        // Fetch revenue/time series for chart
+        setRevenueLoading(true)
+        try {
+          const rResp = await axios.get(`/api/pos/sales/revenue-data?period=${period}`, { headers: { Authorization: `Bearer ${token}` } })
+          if (rResp.data?.success) setRevenueData(rResp.data.data.revenue || [])
+        } catch (e) {
+          console.error('Error fetching revenue data:', e)
+          setRevenueData([])
+        } finally {
+          setRevenueLoading(false)
+        }
 
         setError(null)
       } catch (err) {
@@ -67,6 +83,12 @@ export default function DashboardPage() {
   const totalSales = summary?.totalSales || 0
   const totalRevenue = summary?.totalRevenue || 0
   const averageSale = summary?.averageSale || 0
+
+  const filteredTopProducts = topProducts.filter(p => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return true
+    return (p.name || '').toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q)
+  })
 
   return (
     <div className="min-h-screen bg-background">
@@ -133,15 +155,18 @@ export default function DashboardPage() {
         <Card className="mb-6">
           <CardContent className="p-4 rounded-lg bg-card">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Input placeholder="Search products or SKU..." />
+              <Input placeholder="Cari produk atau SKU..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
               <div />
               <div className="flex items-center justify-end">
-                <select value={period} onChange={(e) => setPeriod(e.target.value)} className="px-3 py-2 border rounded-md bg-card text-card-foreground">
-                  <option value="today">Hari ini</option>
-                  <option value="week">Minggu</option>
-                  <option value="month">Bulan</option>
-                  <option value="all">Semua</option>
-                </select>
+                <Select value={period} onValueChange={(v) => setPeriod(v)}>
+                  <SelectTrigger className="w-40"><SelectValue placeholder="Periode" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="today">Hari ini</SelectItem>
+                    <SelectItem value="week">Minggu</SelectItem>
+                    <SelectItem value="month">Bulan</SelectItem>
+                    <SelectItem value="all">Semua</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>
@@ -157,12 +182,15 @@ export default function DashboardPage() {
                   <CardDescription>Lihat produk yang paling banyak terjual</CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                  <select value={period} onChange={(e) => setPeriod(e.target.value)} className="border rounded px-2 py-1 text-sm">
-                    <option value="today">Hari ini</option>
-                    <option value="week">Minggu</option>
-                    <option value="month">Bulan</option>
-                    <option value="all">Semua</option>
-                  </select>
+                  <Select value={period} onValueChange={(v) => setPeriod(v)}>
+                    <SelectTrigger className="w-32 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="today">Hari ini</SelectItem>
+                      <SelectItem value="week">Minggu</SelectItem>
+                      <SelectItem value="month">Bulan</SelectItem>
+                      <SelectItem value="all">Semua</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </CardHeader>
@@ -171,7 +199,7 @@ export default function DashboardPage() {
                 <p className="text-sm text-muted-foreground">Tidak ada data penjualan</p>
               ) : (
                 <ul className="space-y-3">
-                  {topProducts.map((p, i) => (
+                  {filteredTopProducts.map((p, i) => (
                     <li key={p.productId} className="flex items-center gap-4">
                       <div className="w-8 text-sm font-medium">{i + 1}</div>
                       <div className="flex-1">
@@ -194,22 +222,45 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <div>
-                <CardTitle>Sales Breakdown</CardTitle>
-                <CardDescription>Metode pembayaran dan ringkasan</CardDescription>
+                <CardTitle>Pendapatan</CardTitle>
+                <CardDescription>Grafik pendapatan ({period})</CardDescription>
               </div>
             </CardHeader>
             <CardContent>
-              {paymentMethods.length === 0 ? (
-                <div className="text-sm text-muted-foreground">Tidak ada data metode pembayaran</div>
+              {revenueLoading ? (
+                <div className="flex items-center justify-center h-32">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                </div>
+              ) : (!revenueData || revenueData.length === 0) ? (
+                <div className="text-sm text-muted-foreground">Tidak ada data pendapatan</div>
               ) : (
-                <ul className="space-y-2">
-                  {paymentMethods.map(pm => (
-                    <li key={pm.paymentMethod} className="flex items-center justify-between">
-                      <div className="text-sm">{pm.paymentMethod}</div>
-                      <div className="text-sm font-medium">{formatCurrency(pm.total)} ({pm.count})</div>
-                    </li>
-                  ))}
-                </ul>
+                <div className="w-full">
+                  {/* Simple SVG bar chart */}
+                  <div className="overflow-x-auto">
+                    <svg viewBox="0 0 600 220" className="w-full h-56">
+                      {(() => {
+                        const data = revenueData.slice(-12)
+                        const max = Math.max(...data.map(d => d.total), 1)
+                        const padding = 40
+                        const chartW = 600 - padding
+                        const chartH = 180
+                        const barW = chartW / data.length
+                        return data.map((d, i) => {
+                          const h = (d.total / max) * chartH
+                          const x = padding / 2 + i * barW
+                          const y = chartH - h + 10
+                          const label = d.date
+                          return (
+                            <g key={label}>
+                              <rect x={x} y={y} width={Math.max(6, barW - 8)} height={Math.max(2, h)} fill="var(--chart-2)" />
+                              <text x={x + (barW - 8)/2} y={chartH + 28} fontSize="10" textAnchor="middle" fill="var(--muted-foreground)">{label}</text>
+                            </g>
+                          )
+                        })
+                      })()}
+                    </svg>
+                  </div>
+                </div>
               )}
             </CardContent>
           </Card>
