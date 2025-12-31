@@ -4,6 +4,8 @@ import { Button } from './ui/button'
 
 const shortcuts = [
   { keys: 'Ctrl+T / F9', desc: 'Focus Tunai (Bayar) input' },
+  { keys: 'Alt+1..Alt+9 / Alt+0', desc: 'Cash shortcuts — tekan Alt+N untuk menambah nilai ke input Tunai (Alt+0 = tombol ke-10)' },
+  { keys: 'Alt+B', desc: 'Bayar (checkout Tunai) — tekan Alt+B untuk bayar (akan muncul konfirmasi)' },
   { keys: 'Type any character', desc: 'Focus barcode input (scan or type to search)' },
   { keys: 'F12', desc: 'Toggle DevTools' },
   { keys: 'Ctrl+Q', desc: 'Quit application' },

@@ -744,6 +744,7 @@ function App() {
               posSettings={posSettings}
               cashInputRef={cashInputRef}
               isProcessing={isProcessingSale}
+              showConfirm={showConfirm}
             />
 
             {paymentResult && (

@@ -1,10 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Wallet, CreditCard, Smartphone, Loader2 } from 'lucide-react'
 import { Card, CardContent } from './ui/card'
 import { Button } from './ui/button'
 
 
-function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef = null, isProcessing = false }) {
+function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef = null, isProcessing = false, showConfirm = (msg) => Promise.resolve(window.confirm(msg)) }) {
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const taxRate = posSettings.taxRate || 11
   const defaultDiscount = posSettings.defaultDiscount || 0
@@ -41,6 +41,8 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
     }
   }, [])
 
+
+
   const handleShortcutClick = (value) => {
     setCashAmount(prev => String((Number(prev) || 0) + value))
 
@@ -57,6 +59,53 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
     //   }, 220)
     // }
   }
+
+  // Pay handler (used by button and Alt+B shortcut)
+  const handlePay = useCallback(async () => {
+    const ok = await onCheckout('cash', canPayWithCash ? parsedCash : null)
+    if (ok) setCashAmount('')
+  }, [onCheckout, canPayWithCash, parsedCash])
+
+  // Alt+B: trigger Pay
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (!e.altKey) return
+      const k = e.key
+      if (k.toLowerCase() === 'b') {
+        // respect the same disabled rules as the button
+        if (!total || isProcessing) return
+        e.preventDefault()
+        // Use the app's custom confirm modal (provided via prop) before performing pay
+        ;(async () => {
+          try {
+            const confirmed = await showConfirm('Konfirmasi: lanjutkan pembayaran tunai?')
+            if (confirmed) handlePay()
+          } catch (err) {
+            console.error('Error showing confirm:', err)
+          }
+        })()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [handlePay, total, isProcessing])
+  // Listen for Alt+1..Alt+0 to trigger cash shortcuts (Alt+1 -> first, Alt+2 -> second, ..., Alt+0 -> tenth)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (!e.altKey) return
+      const k = e.key
+      if (!/^[0-9]$/.test(k)) return
+      const d = parseInt(k, 10)
+      // map 1->0, 2->1, ..., 9->8, 0->9
+      const index = d === 0 ? 9 : (d - 1)
+      if (index >= 0 && index < cashShortcuts.length) {
+        e.preventDefault()
+        handleShortcutClick(cashShortcuts[index])
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [cashShortcuts])
 
   return (
     <Card className="flex flex-col h-full overflow-hidden">
@@ -99,17 +148,20 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
           <div className='text-lg text-muted-foreground font-medium mb-1'>
             Cash Shortcuts:
           </div>
-          <div className="grid grid-cols-3 p-3 gap-2">
-            {cashShortcuts.map((nom) => (
+          <div className="grid grid-cols-2 p-3 gap-2">
+            {cashShortcuts.map((nom, idx) => (
               <Button
                 key={nom}
                 variant="outline"
                 size="xl"
                 className="h-10 text-start w-full px-3"
                 onClick={() => handleShortcutClick(nom)}
-                title="Klik: set; Double click: tambah"
+                title={`Klik: set; Double click: tambah; Shortcut: Alt+${(idx + 1) % 10}`}
               >
-                Rp {formatPrice(nom)}
+                <div className="flex text-md justify-between items-center w-full">
+                  <div>Rp {formatPrice(nom)}</div>
+                  <div className="text-xs text-muted-foreground">Alt+{(idx + 1) % 10}</div>
+                </div>
               </Button>
             ))}
           </div>
@@ -160,16 +212,14 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
 
       <div className="grid grid-cols-1 border-t-2 border-border">
         <Button
-          onClick={async () => {
-            const ok = await onCheckout('cash', canPayWithCash ? parsedCash : null)
-            if (ok) setCashAmount('')
-          }}
-          className="h-24 rounded-none bg-primary hover:bg-primary/90 text-primary-foreground flex-row gap-2 text-base font-bold border-r border-border"
+          onClick={handlePay}
+          className="h-24 rounded-none flex-row gap-2 text-base font-bold"
           disabled={!total || isProcessing}
         >
           {isProcessing ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Wallet className="h-7 w-7" />}
           <div className="text-center leading-tight">
             {isProcessing ? 'Memproses...' : 'BAYAR'}
+            <div className="text-xs  mt-1">Alt+B</div>
           </div>
         </Button>
         {/* <Button 
