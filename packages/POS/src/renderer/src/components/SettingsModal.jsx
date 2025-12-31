@@ -85,7 +85,8 @@ function SettingsModal({ onClose }) {
     try {
       await window.electronAPI.setDeviceConfig(deviceConfig)
       // Notify app that device config changed so UI (e.g. cash shortcuts) can reload
-      window.dispatchEvent(new CustomEvent('device-config-updated'))
+      console.log('Device config saved, dispatching device-config-updated with', deviceConfig.cashShortcuts)
+      window.dispatchEvent(new CustomEvent('device-config-updated', { detail: { cashShortcuts: deviceConfig.cashShortcuts } }))
       window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'success', message: 'Settings saved successfully!', timeout: 4000 } }))
       onClose()
     } catch (error) {

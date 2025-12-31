@@ -42,77 +42,111 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
   }, [])
 
   const handleShortcutClick = (value) => {
-    // Detect double click via short timeout
-     setCashAmount((prev) => String((Number(prev) || 0) + value))
+    setCashAmount(prev => String((Number(prev) || 0) + value))
+
+    // // Detect double click via short timeout
+    // if (clickTimerRef.current) {
+    //   clearTimeout(clickTimerRef.current)
+    //   clickTimerRef.current = null
+    //   // double click -> add
+    // } else {
+    //   // single click -> set after short delay (to allow double click detection)
+    //   clickTimerRef.current = setTimeout(() => {
+    //     setCashAmount(String(value))
+    //     clickTimerRef.current = null
+    //   }, 220)
+    // }
   }
 
   return (
     <Card className="flex flex-col h-full overflow-hidden">
       <CardContent className="flex-1 p-6 space-y-4">
-        <div className="flex justify-between text-base">
-          <span className="text-muted-foreground">Total Item:</span>
-          <span className="font-semibold">{cart.length}</span>
-        </div>
-        <div className="flex justify-between text-base">
-          <span className="text-muted-foreground">Subtotal:</span>
-          <span className="font-semibold">Rp {formatPrice(subtotal)}</span>
-        </div>
+
+        {(enableDiscount || enableTax) && (
+          <div className="flex justify-between text-lg">
+            <span className="text-muted-foreground">Total Item:</span>
+            <span className="font-semibold">{cart.length}</span>
+          </div>
+        )}
+
+        {(enableDiscount || enableTax) && (
+          <div className="flex justify-between text-lg">
+            <span className="text-muted-foreground">Subtotal:</span>
+            <span className="font-semibold">Rp {formatPrice(subtotal)}</span>
+          </div>
+        )}
+
         {enableTax && (
-          <div className="flex justify-between text-base">
+          <div className="flex justify-between text-lg">
             <span className="text-muted-foreground">PPN ({taxRate}%):</span>
             <span className="font-semibold">Rp {formatPrice(Math.round(tax))}</span>
           </div>
         )}
         {enableDiscount && defaultDiscount > 0 && (
-          <div className="flex justify-between text-base">
+          <div className="flex justify-between text-lg">
             <span className="text-muted-foreground">Diskon ({defaultDiscount}%):</span>
             <span className="font-semibold">- Rp {formatPrice(Math.round(discount))}</span>
           </div>
         )}
 
-        <div className="flex justify-between text-2xl font-bold text-destructive pt-4 mt-2 border-t-2 border-border">
+        <div className="flex justify-between text-2xl font-bold text-destructive">
           <span>TOTAL:</span>
           <span>Rp {formatPrice(total)}</span>
         </div>
 
         {/* Cash shortcut buttons */}
-        <div className="grid grid-cols-3 gap-2">
-          {cashShortcuts.map((nom) => (
-            <Button
-              key={nom}
-              variant="outline"
-              size="xl"
-              className="h-10 text-start w-full px-3"
-              onClick={() => handleShortcutClick(nom)}
-              title="Klik: set; Double click: tambah"
-            >
-              Rp {formatPrice(nom)}
-            </Button>
-          ))}
+        <div className='flex flex-col gap-2 w-full border p-2 rounded-xl'>
+          <div className='text-lg text-muted-foreground font-medium mb-1'>
+            Cash Shortcuts:
+          </div>
+          <div className="grid grid-cols-3 p-3 gap-2">
+            {cashShortcuts.map((nom) => (
+              <Button
+                key={nom}
+                variant="outline"
+                size="xl"
+                className="h-10 text-start w-full px-3"
+                onClick={() => handleShortcutClick(nom)}
+                title="Klik: set; Double click: tambah"
+              >
+                Rp {formatPrice(nom)}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Cash input placed below total */}
         <div className="flex flex-col gap-2 pt-3">
-          <div className="flex justify-between text-2xl items-center">
+          <div className="flex justify-between text-xl gap-2 items-center">
             <span className="text-muted-foreground">Tunai (Bayar):</span>
             <input
               ref={cashInputRef}
               id="pos-cash-input"
-              type="number"
-              min="0"
-              step="100"
-              value={cashAmount}
-              onChange={(e) => setCashAmount(e.target.value)}
-              className="w-60 text-right border rounded p-1 bg-white text-black"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={cashAmount ? Number(cashAmount).toLocaleString('id-ID') : ''}
+              onChange={(e) => {
+                // allow only digits (strip separators/other chars)
+                const digits = e.target.value.replace(/\D/g, '')
+                setCashAmount(digits)
+              }}
+              className="text-right border rounded p-1"
               placeholder="0"
             />
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setCashAmount('')}
-            >
-              Clear
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  setCashAmount('')
+                  // refocus input after clearing
+                  setTimeout(() => cashInputRef?.current?.focus(), 10)
+                }}
+              >
+                Clear
+              </Button>
+            </div>
           </div>
 
           {canPayWithCash && (

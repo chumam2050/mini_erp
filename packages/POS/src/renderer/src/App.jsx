@@ -120,7 +120,7 @@ function App() {
       const response = await getPosSettings()
       
       if (response) {
-        setPosSettings({
+        const newSettings = {
           plasticBagSmallPrice: response['pos.plastic_bag_small_price']?.value || 200,
           plasticBagLargePrice: response['pos.plastic_bag_large_price']?.value || 500,
           taxRate: response['pos.tax_rate']?.value || 11,
@@ -133,7 +133,9 @@ function App() {
             phone: response['store.phone']?.value || '',
             email: response['store.email']?.value || '',
           }
-        })
+        }
+        // Merge with existing settings so we don't overwrite device-specific values like cashShortcuts
+        setPosSettings(prev => ({ ...prev, ...newSettings }))
       }
     } catch (error) {
       console.error('Error fetching POS settings:', error)
@@ -181,15 +183,29 @@ function App() {
     })
 
     // Listener for when device config updates (e.g. cash shortcuts changed from Settings)
-    const handleDeviceConfigUpdated = async () => {
+    const handleDeviceConfigUpdated = async (e) => {
       try {
-        const deviceConfig = await window.electronAPI.getDeviceConfig()
-        if (deviceConfig && deviceConfig.cashShortcuts) {
-          let shortcuts = deviceConfig.cashShortcuts
+        let shortcuts = null
+        // Prefer event payload if provided
+        if (e && e.detail && e.detail.cashShortcuts) {
+          shortcuts = e.detail.cashShortcuts
+          console.log('Received device-config-updated event with payload:', shortcuts)
+        } else {
+          const deviceConfig = await window.electronAPI.getDeviceConfig()
+          shortcuts = deviceConfig?.cashShortcuts
+          console.log('Fetched device config after update, cashShortcuts:', shortcuts)
+        }
+
+        if (shortcuts) {
           if (typeof shortcuts === 'string') {
             shortcuts = shortcuts.split(',').map(s => parseInt(s.trim())).filter(Boolean)
+          } else if (Array.isArray(shortcuts)) {
+            shortcuts = shortcuts.map(s => parseInt(s)).filter(Boolean)
           }
+          console.log('Updating cash shortcuts to:', shortcuts)
           setPosSettings(prev => ({ ...prev, cashShortcuts: shortcuts }))
+        } else {
+          console.log('No cashShortcuts found in device config update')
         }
       } catch (err) {
         console.error('Error reloading device config:', err)
@@ -640,8 +656,6 @@ function App() {
 
   const closeSettings = () => {
     setShowSettings(false)
-    // Refresh POS settings after closing
-    fetchPosSettings()
   }
 
   const handleLoginSuccess = (user, token) => {
