@@ -437,6 +437,10 @@ function App() {
     if (ok) {
       setCart([])
       setSelectedItemIndex(null)
+      // Clear input Tunai (Bayar)
+      if (cashInputRef.current) {
+        cashInputRef.current.value = ''
+      }
       barcodeInputRef.current?.focus()
     }
   }
@@ -485,6 +489,9 @@ function App() {
 
   const closePaymentResult = () => {
     setPaymentResult(null)
+    setTimeout(() => {
+      barcodeInputRef.current?.focus()
+    }, 100)
   }
 
   // Global confirmation modal state + helper

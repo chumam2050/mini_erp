@@ -2,9 +2,29 @@ import { X, Printer, CheckCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Button } from './ui/button'
 
+import { useEffect, useRef } from 'react'
+
 function PaymentResultModal({ onClose, total = 0, paid = 0, change = 0, onReprint = null }) {
+  const closeBtnRef = useRef(null)
+
+  useEffect(() => {
+    // Autofocus tombol Tutup saat modal muncul
+    closeBtnRef.current?.focus()
+  }, [])
+
+  // Enter = Tutup, Shift+Enter = Cetak Struk (jika ada)
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      onClose()
+    } else if ((e.key === 'Enter' && e.shiftKey) && onReprint) {
+      e.preventDefault()
+      onReprint()
+    }
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" tabIndex={-1} onKeyDown={handleKeyDown}>
       <Card className="w-full max-w-sm flex flex-col shadow-2xl border-border/30">
         <div className="flex items-center justify-center pt-4">
           <div className="bg-green-50 text-green-600 rounded-full p-2 shadow-sm">
@@ -43,7 +63,7 @@ function PaymentResultModal({ onClose, total = 0, paid = 0, change = 0, onReprin
               <Printer className="h-4 w-4 mr-2" /> Cetak Struk
             </Button>
 
-            <Button onClick={onClose} className="px-4 bg-black text-primary-foreground hover:bg-black/90">
+            <Button ref={closeBtnRef} autoFocus onClick={onClose} className="px-4 bg-black text-primary-foreground hover:bg-black/90">
               Tutup
             </Button>
           </div>
