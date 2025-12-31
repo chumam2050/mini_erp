@@ -13,10 +13,36 @@ function SettingsModal({ onClose }) {
   const [isLoadingPrinters, setIsLoadingPrinters] = useState(false)
   const [isTestingPrinter, setIsTestingPrinter] = useState(false)
 
+  // POS settings state
+  const [posSettings, setPosSettings] = useState({
+    plasticBagSmallPrice: 0,
+    plasticBagLargePrice: 0,
+    taxRate: 0,
+    defaultDiscount: 0,
+    enableTax: false,
+    enableDiscount: false,
+    cashShortcuts: [2000, 5000, 10000, 20000, 50000, 100000]
+  })
+  const [isLoadingPosSettings, setIsLoadingPosSettings] = useState(false)
+
   useEffect(() => {
     loadPrinters()
     loadDeviceConfig()
+    loadPosSettings()
   }, [])
+  const loadPosSettings = async () => {
+    setIsLoadingPosSettings(true)
+    try {
+      const localSettings = await window.electronAPI.storeGet('posSettings')
+      if (localSettings) {
+        setPosSettings(prev => ({ ...prev, ...localSettings }))
+      }
+    } catch (error) {
+      console.error('Error loading POS settings:', error)
+    } finally {
+      setIsLoadingPosSettings(false)
+    }
+  }
 
   const loadPrinters = async () => {
     setIsLoadingPrinters(true)
@@ -84,11 +110,15 @@ function SettingsModal({ onClose }) {
   const handleSave = async () => {
     try {
       await window.electronAPI.setDeviceConfig(deviceConfig)
+      // Save POS settings to electron-store
+      await window.electronAPI.storeSet('posSettings', posSettings)
       // Notify app that device config changed so UI (e.g. cash shortcuts) can reload
       console.log('Device config saved, dispatching device-config-updated with', deviceConfig.cashShortcuts)
       window.dispatchEvent(new CustomEvent('device-config-updated', { detail: { cashShortcuts: deviceConfig.cashShortcuts } }))
       window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'success', message: 'Settings saved successfully!', timeout: 4000 } }))
-      onClose()
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
     } catch (error) {
       window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Error saving device config: ' + error.message, timeout: 6000 } }))
     }
@@ -109,6 +139,80 @@ function SettingsModal({ onClose }) {
           </Button>
         </CardHeader>
         <CardContent className="pt-6 overflow-y-auto flex-1 space-y-6">
+                    {/* POS Settings Section */}
+                    <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border/30">
+                      <h3 className="text-sm font-medium mb-2">POS Settings</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="plasticBagSmallPrice" className="text-sm">Harga Kantong Plastik Kecil</Label>
+                          <input
+                            id="plasticBagSmallPrice"
+                            type="number"
+                            min="0"
+                            value={posSettings.plasticBagSmallPrice}
+                            onChange={e => setPosSettings({ ...posSettings, plasticBagSmallPrice: parseInt(e.target.value) })}
+                            className="w-full h-10 px-3 border rounded"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="plasticBagLargePrice" className="text-sm">Harga Kantong Plastik Besar</Label>
+                          <input
+                            id="plasticBagLargePrice"
+                            type="number"
+                            min="0"
+                            value={posSettings.plasticBagLargePrice}
+                            onChange={e => setPosSettings({ ...posSettings, plasticBagLargePrice: parseInt(e.target.value) })}
+                            className="w-full h-10 px-3 border rounded"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="taxRate" className="text-sm">Pajak (%)</Label>
+                          <input
+                            id="taxRate"
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={posSettings.taxRate}
+                            onChange={e => setPosSettings({ ...posSettings, taxRate: parseInt(e.target.value) })}
+                            className="w-full h-10 px-3 border rounded"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="defaultDiscount" className="text-sm">Diskon Default (%)</Label>
+                          <input
+                            id="defaultDiscount"
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={posSettings.defaultDiscount}
+                            onChange={e => setPosSettings({ ...posSettings, defaultDiscount: parseInt(e.target.value) })}
+                            className="w-full h-10 px-3 border rounded"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="enableTax"
+                            type="checkbox"
+                            checked={posSettings.enableTax}
+                            onChange={e => setPosSettings({ ...posSettings, enableTax: e.target.checked })}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="enableTax" className="text-sm">Aktifkan Pajak</Label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="enableDiscount"
+                            type="checkbox"
+                            checked={posSettings.enableDiscount}
+                            onChange={e => setPosSettings({ ...posSettings, enableDiscount: e.target.checked })}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="enableDiscount" className="text-sm">Aktifkan Diskon</Label>
+                        </div>
+                      </div>
+                    </div>
           
           {/* Barcode Scanner Info */}
           <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 flex gap-3">

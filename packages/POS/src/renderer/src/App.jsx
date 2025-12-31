@@ -12,7 +12,7 @@ import ProcessingModal from './components/ProcessingModal'
 import Toaster from './components/Toaster'
 import LoginPage from './pages/LoginPage'
 import { isAuthenticated, getCurrentUser, logout } from './utils/auth'
-import { getProducts, getPosSettings, createSale } from './utils/api'
+import { getProducts, createSale } from './utils/api'
 
 function App() {
   const [cart, setCart] = useState([])
@@ -29,10 +29,10 @@ function App() {
   const [posSettings, setPosSettings] = useState({
     plasticBagSmallPrice: 200,
     plasticBagLargePrice: 500,
-    taxRate: 11,
+    taxRate: 0,
     defaultDiscount: 0,
-    enableTax: true,
-    enableDiscount: true,
+    enableTax: false,
+    enableDiscount: false,
     // default cash shortcut buttons (will be overridden by device config if present)
     cashShortcuts: [2000, 5000, 10000, 20000, 50000, 100000]
   })
@@ -118,28 +118,12 @@ function App() {
   // Fetch POS settings from backend
   const fetchPosSettings = async () => {
     try {
-      const response = await getPosSettings()
-      
-      if (response) {
-        const newSettings = {
-          plasticBagSmallPrice: response['pos.plastic_bag_small_price']?.value || 200,
-          plasticBagLargePrice: response['pos.plastic_bag_large_price']?.value || 500,
-          taxRate: response['pos.tax_rate']?.value || 11,
-          defaultDiscount: response['pos.default_discount']?.value || 0,
-          enableTax: response['pos.enable_tax']?.value !== false,
-          enableDiscount: response['pos.enable_discount']?.value !== false,
-          store: {
-            name: response['store.name']?.value || 'Mini ERP Store',
-            address: response['store.address']?.value || '',
-            phone: response['store.phone']?.value || '',
-            email: response['store.email']?.value || '',
-          }
-        }
-        // Merge with existing settings so we don't overwrite device-specific values like cashShortcuts
-        setPosSettings(prev => ({ ...prev, ...newSettings }))
+      const localSettings = await window.electronAPI.storeGet('posSettings')
+      if (localSettings) {
+        setPosSettings(prev => ({ ...prev, ...localSettings }))
       }
     } catch (error) {
-      console.error('Error fetching POS settings:', error)
+      console.error('Error fetching POS settings from local store:', error)
     }
   }
 
@@ -679,7 +663,7 @@ function App() {
   const handleLoginSuccess = async (user, token) => {
     setCurrentUser(user)
     setIsLoggedIn(true)
-    // Pastikan data produk dan settings di-fetch setelah login
+    // Ambil data produk dan settings dari local store
     await fetchPosSettings()
     await fetchProducts()
   }
