@@ -18,6 +18,7 @@ function App() {
   const [cart, setCart] = useState([])
   const [products, setProducts] = useState([])
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  const [isProcessingLogout, setIsProcessingLogout] = useState(false)
   const [selectedItemIndex, setSelectedItemIndex] = useState(null)
   const [showSettings, setShowSettings] = useState(false)
   const [apiConfig, setApiConfig] = useState({})
@@ -668,18 +669,26 @@ function App() {
     setShowSettings(false)
   }
 
-  const handleLoginSuccess = (user, token) => {
+  const handleLoginSuccess = async (user, token) => {
     setCurrentUser(user)
     setIsLoggedIn(true)
+    // Pastikan data produk dan settings di-fetch setelah login
+    await fetchPosSettings()
+    await fetchProducts()
   }
 
   const handleLogout = async () => {
     const ok = await showConfirm('Anda yakin ingin logout?')
     if (ok) {
-      await logout()
-      setIsLoggedIn(false)
-      setCurrentUser(null)
-      clearCart()
+      setIsProcessingLogout(true)
+      try {
+        await logout()
+        setIsLoggedIn(false)
+        setCurrentUser(null)
+        clearCart()
+      } finally {
+        setIsProcessingLogout(false)
+      }
     }
   }
 
@@ -735,8 +744,11 @@ function App() {
         onSettingsClick={() => setShowSettings(true)}
         onShortcutsClick={() => setShowShortcuts(true)}
         currentUser={currentUser}
-        onLogout={handleLogout}
+        onLogout={isProcessingLogout ? undefined : handleLogout}
       />
+            {isProcessingLogout && (
+              <ProcessingModal message="Logout..." />
+            )}
       {showShortcuts && (
         <ShortcutsModal onClose={() => setShowShortcuts(false)} />
       )}

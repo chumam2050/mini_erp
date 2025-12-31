@@ -45,19 +45,6 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
 
   const handleShortcutClick = (value) => {
     setCashAmount(prev => String((Number(prev) || 0) + value))
-
-    // // Detect double click via short timeout
-    // if (clickTimerRef.current) {
-    //   clearTimeout(clickTimerRef.current)
-    //   clickTimerRef.current = null
-    //   // double click -> add
-    // } else {
-    //   // single click -> set after short delay (to allow double click detection)
-    //   clickTimerRef.current = setTimeout(() => {
-    //     setCashAmount(String(value))
-    //     clickTimerRef.current = null
-    //   }, 220)
-    // }
   }
 
   // Pay handler (used by button and Alt+B shortcut)

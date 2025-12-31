@@ -34,6 +34,7 @@ import {
 
 function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [loadingLogout, setLoadingLogout] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
   
@@ -41,9 +42,13 @@ function Navbar() {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    navigate('/login')
+    setLoadingLogout(true)
+    setTimeout(() => {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      setLoadingLogout(false)
+      navigate('/login')
+    }, 1000)
   }
 
   const navItems = [
@@ -124,9 +129,13 @@ function Navbar() {
                   Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
+                <DropdownMenuItem onClick={loadingLogout ? undefined : handleLogout} className="text-destructive" disabled={loadingLogout}>
+                  {loadingLogout ? (
+                    <span className="mr-2 h-4 w-4 animate-spin border-2 border-t-transparent border-destructive rounded-full inline-block align-middle" style={{width: '1rem', height: '1rem'}} />
+                  ) : (
+                    <LogOut className="mr-2 h-4 w-4" />
+                  )}
+                  {loadingLogout ? 'Logging out...' : 'Logout'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -212,10 +221,15 @@ function Navbar() {
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-3 text-destructive hover:text-destructive"
-                    onClick={handleLogout}
+                    onClick={loadingLogout ? undefined : handleLogout}
+                    disabled={loadingLogout}
                   >
-                    <LogOut className="h-5 w-5" />
-                    Logout
+                    {loadingLogout ? (
+                      <span className="h-5 w-5 animate-spin border-2 border-t-transparent border-destructive rounded-full inline-block align-middle mr-2" style={{width: '1.25rem', height: '1.25rem'}} />
+                    ) : (
+                      <LogOut className="h-5 w-5" />
+                    )}
+                    {loadingLogout ? 'Logging out...' : 'Logout'}
                   </Button>
                 </div>
               </SheetContent>
