@@ -62,11 +62,26 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
 
   // Pay handler (used by button and Alt+B shortcut)
   const handlePay = useCallback(async () => {
-    const ok = await onCheckout('cash', canPayWithCash ? parsedCash : null)
+    // pass current parsed cash as amountFromSummary so prompt can prefill with it if needed
+    const ok = await onCheckout('cash', parsedCash)
     if (ok) setCashAmount('')
-  }, [onCheckout, canPayWithCash, parsedCash])
+  }, [onCheckout, parsedCash])
 
-  // Alt+B: trigger Pay
+  // Click handler for Pay button that asks for confirmation first
+  const confirmAndPay = useCallback(async () => {
+    if (!total || isProcessing) return
+    let confirmMsg = 'Konfirmasi: lanjutkan pembayaran tunai?'
+    if (parsedCash > 0 && parsedCash < total) {
+      confirmMsg = `Tunai kurang Rp ${formatPrice(total - parsedCash)}. Lanjutkan dan masukkan jumlah tunai?`
+    } else if (!parsedCash || parsedCash === 0) {
+      confirmMsg = 'Tunai belum diisi. Lanjutkan dan masukkan jumlah tunai?'
+    }
+
+    const confirmed = await showConfirm(confirmMsg)
+    if (confirmed) await handlePay()
+  }, [total, isProcessing, parsedCash, formatPrice, showConfirm, handlePay])
+
+  // Alt+B: trigger Pay via keyboard (uses same confirmation flow)
   useEffect(() => {
     const onKeyDown = (e) => {
       if (!e.altKey) return
@@ -75,20 +90,13 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
         // respect the same disabled rules as the button
         if (!total || isProcessing) return
         e.preventDefault()
-        // Use the app's custom confirm modal (provided via prop) before performing pay
-        ;(async () => {
-          try {
-            const confirmed = await showConfirm('Konfirmasi: lanjutkan pembayaran tunai?')
-            if (confirmed) handlePay()
-          } catch (err) {
-            console.error('Error showing confirm:', err)
-          }
-        })()
+        // Trigger the same confirmation + pay flow used by the button
+        confirmAndPay().catch(err => console.error('Error in confirmAndPay:', err))
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [handlePay, total, isProcessing])
+  }, [confirmAndPay, total, isProcessing])
   // Listen for Alt+1..Alt+0 to trigger cash shortcuts (Alt+1 -> first, Alt+2 -> second, ..., Alt+0 -> tenth)
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -200,6 +208,13 @@ function Summary({ cart, formatPrice, onCheckout, posSettings = {}, cashInputRef
               </Button>
             </div>
           </div>
+
+          {parsedCash > 0 && parsedCash < total && (
+            <div className="flex justify-between text-lg text-red-600">
+              <span className="font-semibold text-black">Kurang:</span>
+              <span className="font-semibold">Rp {formatPrice(total - parsedCash)}</span>
+            </div>
+          )}
 
           {canPayWithCash && (
             <div className="flex justify-between text-2xl text-green-700">

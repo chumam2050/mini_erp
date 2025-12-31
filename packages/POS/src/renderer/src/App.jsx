@@ -41,10 +41,10 @@ function App() {
   const [promptState, setPromptState] = useState({ visible: false, title: '', defaultValue: '' })
   const promptResolverRef = useRef(null)
 
-  const showPrompt = (title, defaultValue = '') => {
+  const showPrompt = (title, defaultValue = '', options = {}) => {
     return new Promise(resolve => {
       promptResolverRef.current = resolve
-      setPromptState({ visible: true, title, defaultValue })
+      setPromptState({ visible: true, title, defaultValue, options, error: '' })
       // focus input next tick
       setTimeout(() => {
         const inputEl = document.getElementById('app-prompt-input')
@@ -58,7 +58,7 @@ function App() {
     const resolver = promptResolverRef.current
     if (resolver) resolver(value)
     promptResolverRef.current = null
-    setPromptState({ visible: false, title: '', defaultValue: '' })
+    setPromptState({ visible: false, title: '', defaultValue: '', options: {}, error: '' })
   }
 
   // Check authentication on mount
@@ -521,8 +521,18 @@ function App() {
       if (amountFromSummary && !isNaN(amountFromSummary) && parseInt(amountFromSummary) >= total) {
         amountPaid = parseInt(amountFromSummary)
       } else {
-        const cashAmount = await showPrompt(`Total: Rp ${formatPrice(total)}\n\nMasukkan jumlah uang tunai:`)
-        if (!cashAmount || isNaN(cashAmount) || parseInt(cashAmount) < total) {
+        // Show prompt with shortcuts and minimum amount validation
+        const defaultValue = (amountFromSummary !== null && amountFromSummary !== undefined) ? String(amountFromSummary) : ''
+        const cashAmount = await showPrompt(
+          `Total: Rp ${formatPrice(total)}\n\nMasukkan jumlah uang tunai:`,
+          defaultValue,
+          { minAmount: total, shortcuts: posSettings.cashShortcuts }
+        )
+        // If user cancelled the prompt, abort silently
+        if (cashAmount === null) {
+          return false
+        }
+        if (isNaN(parseInt(cashAmount)) || parseInt(cashAmount) < total) {
           window.dispatchEvent(new CustomEvent('show-toast', { detail: { type: 'error', message: 'Jumlah uang tidak mencukupi!', timeout: 4000 } }))
           return false
         }
@@ -673,6 +683,35 @@ function App() {
     }
   }
 
+  // When a prompt is visible, allow Alt+N shortcuts to fill common cash values
+  useEffect(() => {
+    if (!promptState.visible) return
+    const onKeyDown = (e) => {
+      if (!e.altKey) return
+      const k = e.key
+      if (!/^[0-9]$/.test(k)) return
+      const d = parseInt(k, 10)
+      const shortcuts = promptState.options?.shortcuts || []
+      const index = d === 0 ? 9 : (d - 1)
+      if (index >= 0 && index < shortcuts.length) {
+        e.preventDefault()
+        const inputEl = document.getElementById('app-prompt-input')
+        if (inputEl) {
+          // add to previous numeric value instead of replacing
+          const prevDigits = (inputEl.value || '').replace(/\D/g, '')
+          const prevVal = prevDigits ? parseInt(prevDigits, 10) : 0
+          const newVal = prevVal + Number(shortcuts[index])
+          inputEl.value = String(newVal)
+          // dispatch input event so React/reactive listeners can pick it up if needed
+          inputEl.dispatchEvent(new Event('input', { bubbles: true }))
+          setPromptState(prev => ({ ...prev, error: '' }))
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [promptState.visible, promptState.options])
+
   // Show loading state while checking auth
   if (isCheckingAuth) {
     return (
@@ -766,26 +805,72 @@ function App() {
 
       {/* In-app prompt modal (replaces window.prompt) */}
       {promptState.visible && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p5">
           <div className="absolute inset-0 bg-black opacity-40" onClick={() => closePrompt(null)}></div>
 
           <div className="bg-card text-foreground rounded shadow p-4 z-10 w-96">
-            <div className="mb-2 font-semibold">{promptState.title}</div>
+                    <div className="mb-2 font-semibold">{promptState.title}</div>
+
+            {/* If the prompt has shortcut options (e.g., cash shortcuts), render them for quick insertion */}
+            {promptState.options?.shortcuts && (
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                {promptState.options.shortcuts.map((s, i) => (
+                  <button
+                    key={s + i}
+                    className="py-1 px-2 flex items-center justify-between p-2 flex-row border rounded text-sm text-left"
+                    onClick={() => {
+                      const inputEl = document.getElementById('app-prompt-input')
+                      if (inputEl) {
+                        inputEl.value = String(Number(inputEl.value) + Number(s))
+                        inputEl.dispatchEvent(new Event('input', { bubbles: true }))
+                      }
+                      // clear any previous error
+                      setPromptState(prev => ({ ...prev, error: '' }))
+                    }}
+                  >
+                    Rp {String(s).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}
+                    <div className="text-xs">Alt+{(i + 1) % 10}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <input
               id="app-prompt-input"
               defaultValue={promptState.defaultValue}
-              className="w-full border rounded p-2 mb-3 text-black"
+              className="w-full border rounded p-2 mb-1 text-black"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  closePrompt(e.target.value)
+                  // validate before closing
+                  const v = (e.target.value || '').replace(/\D/g, '')
+                  const min = promptState.options?.minAmount
+                  if (min && (!v || isNaN(v) || parseInt(v, 10) < min)) {
+                    setPromptState(prev => ({ ...prev, error: `Jumlah harus minimal Rp ${min.toLocaleString('id-ID')}` }))
+                    return
+                  }
+                  closePrompt(v)
                 } else if (e.key === 'Escape') {
                   closePrompt(null)
                 }
               }}
             />
-            <div className="flex justify-end gap-2">
+
+            {promptState.error && (
+              <div className="text-xs text-red-600 mb-2">{promptState.error}</div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-5">
               <button className="py-1 px-3 border rounded" onClick={() => closePrompt(null)}>Batal</button>
-              <button className="py-1 px-3 bg-primary text-white rounded" onClick={() => { const v = document.getElementById('app-prompt-input')?.value || ''; closePrompt(v) }}>OK</button>
+              <button className="py-1 px-3 bg-primary text-white rounded" onClick={() => {
+                const v = document.getElementById('app-prompt-input')?.value || ''
+                const digits = v.replace(/\D/g, '')
+                const min = promptState.options?.minAmount
+                if (min && (!digits || isNaN(digits) || parseInt(digits, 10) < min)) {
+                  setPromptState(prev => ({ ...prev, error: `Jumlah harus minimal Rp ${min.toLocaleString('id-ID')}` }))
+                  return
+                }
+                closePrompt(digits)
+              }}>OK</button>
             </div>
           </div>
         </div>
