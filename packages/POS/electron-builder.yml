@@ -1,5 +1,5 @@
 appId: cloud.retaliq.minierp
-productName: minierp
+productName: "MiniERP - POS"
 directories:
   buildResources: build
 files:
@@ -11,7 +11,8 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: minierp_pos
+  executableName: "MiniERP - POS"
+  icon: assets/icon.png
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

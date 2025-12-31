@@ -1,6 +1,6 @@
 {
   "name": "minierp-pos",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Point of Sales Desktop Application",
   "main": "./out/main/index.js",
   "homepage": "https://minierp.retaliq.cloud",
@@ -56,5 +56,11 @@
   "bundleDependencies": [
     "electron-store",
     "@electron-toolkit/utils"
-  ]
+  ],
+  "build": {
+    "productName": "MiniERP - POS",
+    "win": {
+      "executableName": "MiniERP - POS"
+    }
+  }
 }
